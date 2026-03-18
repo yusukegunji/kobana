@@ -1,65 +1,151 @@
-import Image from "next/image";
+import { createServerClient } from "@/lib/supabase/server";
+import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
+import { HomeStage } from "./home-stage";
 
-export default function Home() {
+async function attachFabulous(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  items: Kobanashi[],
+  currentUserId: string | null,
+): Promise<KobanashiWithFabulous[]> {
+  if (items.length === 0) return [];
+  const ids = items.map((i) => i.id);
+
+  // 全ファビュラス数を取得
+  const { data: fabulousRows } = await supabase
+    .from("kobanashi_fabulous")
+    .select("kobanashi_id, user_id")
+    .in("kobanashi_id", ids);
+
+  const countMap = new Map<string, number>();
+  const userSet = new Set<string>();
+  for (const row of fabulousRows ?? []) {
+    countMap.set(row.kobanashi_id, (countMap.get(row.kobanashi_id) ?? 0) + 1);
+    if (currentUserId && row.user_id === currentUserId) {
+      userSet.add(row.kobanashi_id);
+    }
+  }
+
+  return items.map((item) => ({
+    ...item,
+    fabulous_count: countMap.get(item.id) ?? 0,
+    has_fabuloused: userSet.has(item.id),
+  }));
+}
+
+export default async function Home() {
+  const supabase = await createServerClient();
+
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // 今日の予定
+  const { data: todayItems } = await supabase
+    .from("kobanashi")
+    .select("*")
+    .eq("scheduled_date", today)
+    .order("created_at", { ascending: true });
+
+  // 最近の対応済み（直近5件）
+  const { data: recentItems } = await supabase
+    .from("kobanashi")
+    .select("*")
+    .eq("status", "対応済")
+    .order("published_at", { ascending: false })
+    .limit(5);
+
+  // ダッシュボード全件（未対応のもの、日付順）
+  const { data: allItems } = await supabase
+    .from("kobanashi")
+    .select("*")
+    .eq("status", "未対応")
+    .neq("scheduled_date", today)
+    .order("scheduled_date", { ascending: true })
+    .limit(20);
+
+  // ファビュラスランキング（対応済みのファビュラス数トップ10）
+  const { data: rankingItems } = await supabase
+    .from("kobanashi")
+    .select("*")
+    .eq("status", "対応済")
+    .order("published_at", { ascending: false })
+    .limit(50);
+
+  // 全ユーザー名を取得（profiles テーブルから）
+  const { data: profileRows } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .order("display_name");
+  const allUserNames = (profileRows ?? []).map(
+    (r: { display_name: string }) => r.display_name,
+  );
+  console.log("allUserNames:", allUserNames);
+
+  // 現在のユーザーを取得
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id ?? null;
+
+  // 今日のファシリテーターを取得
+  const { data: facilitatorRow, error: facilitatorError } = await supabase
+    .from("facilitator_schedule")
+    .select("user_id")
+    .eq("scheduled_date", today)
+    .maybeSingle();
+
+  if (facilitatorError) {
+    console.error("[facilitator] query error:", facilitatorError.message);
+  }
+
+  const todayFacilitatorUserId = facilitatorRow?.user_id ?? null;
+
+  // ファシリテーターの display_name を取得
+  let todayFacilitatorName: string | null = null;
+  if (todayFacilitatorUserId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", todayFacilitatorUserId)
+      .maybeSingle();
+    todayFacilitatorName = profile?.display_name ?? null;
+  }
+
+  const isFacilitator =
+    todayFacilitatorUserId != null && currentUserId === todayFacilitatorUserId;
+
+  // ファビュラス情報を付与
+  const todayWithFab = await attachFabulous(
+    supabase,
+    (todayItems as Kobanashi[]) ?? [],
+    currentUserId,
+  );
+  const recentWithFab = await attachFabulous(
+    supabase,
+    (recentItems as Kobanashi[]) ?? [],
+    currentUserId,
+  );
+
+  // ランキング: ファビュラス付きで取得し、ファビュラス数でソート
+  const rankingWithFab = await attachFabulous(
+    supabase,
+    (rankingItems as Kobanashi[]) ?? [],
+    currentUserId,
+  );
+  const sortedRanking = rankingWithFab
+    .filter((item) => item.fabulous_count > 0)
+    .sort((a, b) => b.fabulous_count - a.fabulous_count)
+    .slice(0, 10);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <HomeStage
+      todayItems={todayWithFab}
+      recentItems={recentWithFab}
+      allItems={(allItems as Kobanashi[]) ?? []}
+      allUserNames={allUserNames}
+      todayFacilitator={todayFacilitatorName}
+      isFacilitator={isFacilitator}
+      rankingItems={sortedRanking}
+      currentUserId={currentUserId}
+    />
   );
 }
