@@ -83,14 +83,23 @@ export async function submitDayOffRequest(formData: FormData) {
     return { error: `DB保存エラー: ${dbError.message}` };
   }
 
-  // ユーザー名を取得
-  const displayName =
-    (user.user_metadata?.display_name as string) ?? "不明なユーザー";
-
   // Slack に投稿（チェックボックスが ON の場合のみ）
   const postToSlack = formData.get("post_to_slack") === "1";
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
   if (postToSlack && webhookUrl) {
+    // Slack メンション用に slack_user_id を取得
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("slack_user_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const displayName =
+      (user.user_metadata?.display_name as string) ?? "不明なユーザー";
+    const applicant = profile?.slack_user_id
+      ? `<@${profile.slack_user_id}>`
+      : displayName;
+
     try {
       const slackMessage = {
         text: `有休申請書`,
@@ -102,7 +111,7 @@ export async function submitDayOffRequest(formData: FormData) {
           {
             type: "section",
             fields: [
-              { type: "mrkdwn", text: `*申請者:*\n${displayName}` },
+              { type: "mrkdwn", text: `*申請者:*\n${applicant}` },
               { type: "mrkdwn", text: `*有休/取得日:*\n${offDate}` },
               { type: "mrkdwn", text: `*有休/全日or半日:*\n${offType}` },
               { type: "mrkdwn", text: `*有休/取得日数:*\n${offDays}` },
