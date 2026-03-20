@@ -16,6 +16,7 @@ export interface Kobanashi {
 export interface Profile {
   id: string;
   display_name: string;
+  slack_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,13 @@ export interface CurrentOnAir {
   kobanashi_id: string;
   started_by: string;
   started_at: string;
+}
+
+export interface UserDayOff {
+  id: string;
+  user_id: string;
+  off_date: string;
+  created_at: string;
 }
 
 export interface KobanashiWithFabulous extends Kobanashi {

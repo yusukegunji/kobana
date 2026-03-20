@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
-import type { FacilitatorSchedule, Profile } from "@/lib/types";
+import type { FacilitatorSchedule, Profile, UserDayOff } from "@/lib/types";
 import { CalendarView } from "./calendar-view";
 
 export default async function CalendarPage() {
@@ -19,6 +19,19 @@ export default async function CalendarPage() {
     .gte("scheduled_date", startDate)
     .lte("scheduled_date", endDate)
     .order("scheduled_date", { ascending: true });
+
+  // 休み予定を取得
+  const { data: daysOff } = await supabase
+    .from("user_days_off")
+    .select("*")
+    .gte("off_date", startDate)
+    .lte("off_date", endDate)
+    .order("off_date", { ascending: true });
+
+  // ログインユーザー
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // 全メンバーを profiles から取得
   const { data: profiles } = await supabase
@@ -52,6 +65,8 @@ export default async function CalendarPage() {
         <CalendarView
           initialSchedules={(schedules as FacilitatorSchedule[]) ?? []}
           members={(profiles as Pick<Profile, "id" | "display_name">[]) ?? []}
+          initialDaysOff={(daysOff as UserDayOff[]) ?? []}
+          currentUserId={user?.id ?? null}
         />
       </div>
     </div>

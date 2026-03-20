@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import type { FacilitatorSchedule } from "@/lib/types";
-import { upsertFacilitator, removeFacilitator } from "./actions";
+import type { FacilitatorSchedule, UserDayOff } from "@/lib/types";
+import { upsertFacilitator, removeFacilitator, removeDayOff } from "./actions";
+import { DayOffModal } from "./day-off-modal";
 
 interface Member {
   id: string;
@@ -34,12 +35,19 @@ function formatDate(year: number, month: number, day: number) {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
+// 日付ごとの休みユーザーマップ: date -> Set<userId>
+type DaysOffMap = Record<string, Set<string>>;
+
 export function CalendarView({
   initialSchedules,
   members,
+  initialDaysOff,
+  currentUserId,
 }: {
   initialSchedules: FacilitatorSchedule[];
   members: Member[];
+  initialDaysOff: UserDayOff[];
+  currentUserId: string | null;
 }) {
   const memberMap = new Map(members.map((m) => [m.id, m.display_name]));
 
@@ -56,7 +64,16 @@ export function CalendarView({
     }
     return map;
   });
+  const [daysOffMap, setDaysOffMap] = useState<DaysOffMap>(() => {
+    const map: DaysOffMap = {};
+    for (const d of initialDaysOff) {
+      if (!map[d.off_date]) map[d.off_date] = new Set();
+      map[d.off_date].add(d.user_id);
+    }
+    return map;
+  });
   const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [dayOffModalDate, setDayOffModalDate] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const days = getMonthDays(year, month);
@@ -100,6 +117,46 @@ export function CalendarView({
     });
   }
 
+  function handleDayOffClick(date: string) {
+    if (!currentUserId) return;
+
+    const isOff = daysOffMap[date]?.has(currentUserId) ?? false;
+
+    if (isOff) {
+      // 既に休み → 解除
+      startTransition(async () => {
+        const result = await removeDayOff(date);
+        if (!result.error) {
+          setDaysOffMap((prev) => {
+            const next = { ...prev };
+            const set = new Set(prev[date] ?? []);
+            set.delete(currentUserId);
+            if (set.size === 0) {
+              delete next[date];
+            } else {
+              next[date] = set;
+            }
+            return next;
+          });
+        }
+      });
+    } else {
+      // 未設定 → モーダルを開く
+      setDayOffModalDate(date);
+    }
+  }
+
+  function handleDayOffSuccess() {
+    if (!dayOffModalDate || !currentUserId) return;
+    setDaysOffMap((prev) => {
+      const next = { ...prev };
+      const set = new Set(prev[dayOffModalDate] ?? []);
+      set.add(currentUserId);
+      next[dayOffModalDate] = set;
+      return next;
+    });
+  }
+
   function handleRemove(date: string) {
     startTransition(async () => {
       const result = await removeFacilitator(date);
@@ -116,6 +173,16 @@ export function CalendarView({
 
   return (
     <div>
+      {/* 有休申請モーダル */}
+      <DayOffModal
+        open={dayOffModalDate !== null}
+        onOpenChange={(open) => {
+          if (!open) setDayOffModalDate(null);
+        }}
+        date={dayOffModalDate ?? ""}
+        onSuccess={handleDayOffSuccess}
+      />
+
       {/* 月ナビゲーション */}
       <div className="mb-6 flex items-center justify-center gap-4">
         <Button
@@ -168,11 +235,20 @@ export function CalendarView({
           const isToday = dateStr === todayStr;
           const isEditing = editingDate === dateStr;
           const dayOfWeek = new Date(year, month, day).getDay();
+          const offUsers = daysOffMap[dateStr];
+          const isMeOff = currentUserId
+            ? offUsers?.has(currentUserId) ?? false
+            : false;
+          const offNames = offUsers
+            ? [...offUsers]
+                .map((uid) => memberMap.get(uid) ?? "不明")
+                .sort()
+            : [];
 
           return (
             <div
               key={dateStr}
-              className={`relative min-h-[5rem] rounded-lg border p-1.5 transition-colors ${
+              className={`relative min-h-20 rounded-lg border p-1.5 transition-colors ${
                 isToday
                   ? "border-amber-500/50 bg-amber-950/30"
                   : "border-stone-800 bg-stone-900/50 hover:border-stone-700"
@@ -192,11 +268,27 @@ export function CalendarView({
                 >
                   {day}
                 </span>
-                {isToday && (
-                  <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
-                    TODAY
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  {isToday && (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                      TODAY
+                    </span>
+                  )}
+                  {currentUserId && (
+                    <button
+                      onClick={() => handleDayOffClick(dateStr)}
+                      disabled={isPending}
+                      title={isMeOff ? "休みを解除" : "有休申請"}
+                      className={`rounded px-1 py-0.5 text-[10px] transition-colors ${
+                        isMeOff
+                          ? "bg-rose-900/50 text-rose-300 hover:bg-rose-800/50"
+                          : "text-stone-600 hover:bg-stone-800 hover:text-stone-400"
+                      }`}
+                    >
+                      {isMeOff ? "休" : "休"}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {isEditing ? (
@@ -237,20 +329,34 @@ export function CalendarView({
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setEditingDate(dateStr)}
-                  className="mt-1 w-full text-left"
-                >
-                  {assigned ? (
-                    <span className="inline-block rounded-md bg-emerald-900/50 px-1.5 py-0.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-800/50">
-                      {assigned.displayName}
-                    </span>
-                  ) : (
-                    <span className="inline-block rounded-md px-1.5 py-0.5 text-xs text-stone-600 transition-colors hover:bg-stone-800 hover:text-stone-400">
-                      + 担当
-                    </span>
+                <div className="mt-1 flex flex-col gap-1">
+                  <button
+                    onClick={() => setEditingDate(dateStr)}
+                    className="w-full text-left"
+                  >
+                    {assigned ? (
+                      <span className="inline-block rounded-md bg-emerald-900/50 px-1.5 py-0.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-800/50">
+                        {assigned.displayName}
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-md px-1.5 py-0.5 text-xs text-stone-600 transition-colors hover:bg-stone-800 hover:text-stone-400">
+                        + 担当
+                      </span>
+                    )}
+                  </button>
+                  {offNames.length > 0 && (
+                    <div className="flex flex-wrap gap-0.5">
+                      {offNames.map((name) => (
+                        <span
+                          key={name}
+                          className="inline-block rounded bg-rose-950/40 px-1 py-0.5 text-[10px] text-rose-400/80"
+                        >
+                          {name} 休
+                        </span>
+                      ))}
+                    </div>
                   )}
-                </button>
+                </div>
               )}
             </div>
           );

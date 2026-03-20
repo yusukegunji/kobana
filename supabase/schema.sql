@@ -35,6 +35,7 @@ create index idx_kobanashi_status on kobanashi (status);
 create table profiles (
   id             uuid primary key references auth.users(id) on delete cascade,
   display_name   text not null,
+  slack_user_id  text unique,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
@@ -72,6 +73,17 @@ create table current_onair (
   started_at     timestamptz not null default now()
 );
 
+-- ユーザー休み予定
+create table user_days_off (
+  id             uuid primary key default uuid_generate_v4(),
+  user_id        uuid not null references profiles(id) on delete cascade,
+  off_date       date not null,
+  created_at     timestamptz not null default now(),
+  unique (user_id, off_date)
+);
+
+create index idx_user_days_off_date on user_days_off (off_date);
+
 -- Realtime を有効化
 alter publication supabase_realtime add table current_onair;
 alter publication supabase_realtime add table kobanashi_fabulous;
@@ -92,6 +104,11 @@ alter table kobanashi_fabulous enable row level security;
 create policy "fabulous_select" on kobanashi_fabulous for select to authenticated using (true);
 create policy "fabulous_insert" on kobanashi_fabulous for insert to authenticated with check (auth.uid() = user_id);
 create policy "fabulous_delete" on kobanashi_fabulous for delete to authenticated using (auth.uid() = user_id);
+
+alter table user_days_off enable row level security;
+create policy "days_off_select" on user_days_off for select to authenticated using (true);
+create policy "days_off_insert" on user_days_off for insert to authenticated with check (auth.uid() = user_id);
+create policy "days_off_delete" on user_days_off for delete to authenticated using (auth.uid() = user_id);
 
 alter table current_onair enable row level security;
 create policy "onair_select" on current_onair for select to authenticated using (true);
