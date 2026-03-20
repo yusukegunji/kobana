@@ -554,7 +554,7 @@ export function HomeStage({
   return (
     <div
       className="relative min-h-screen overflow-hidden"
-      style={{ background: "#0a0704" }}
+      style={{ background: "#1a1208" }}
     >
       {/* 3D背景 */}
       <Suspense fallback={null}>
@@ -680,10 +680,10 @@ export function HomeStage({
           )}
 
           {/* 中央カラム: サイコロ or On Stage（排他表示） */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col">
             {/* On Air 中: On Stage セクションを表示 */}
             {onAirItem ? (
-              <div className="overflow-hidden rounded-3xl border border-red-500/40 bg-emerald-950/70 shadow-2xl shadow-black/50 backdrop-blur-2xl ring-1 ring-red-500/20 transition-colors">
+              <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-red-500/40 bg-emerald-950/70 shadow-2xl shadow-black/50 backdrop-blur-2xl ring-1 ring-red-500/20 transition-colors">
                 <div className="h-1 bg-linear-to-r from-red-800 via-red-500 to-red-800 animate-pulse" />
                 <div className="px-6 pt-6 pb-2">
                   <h2 className="text-center text-sm font-bold tracking-[0.2em] uppercase text-red-400">
@@ -729,16 +729,16 @@ export function HomeStage({
                 )}
               </div>
             ) : (
-              <>
+              <div className="flex flex-1 flex-col">
                 {/* 通常時: Today's Speaker セクション */}
                 {allUserNames.length > 0 && (
-                  <div className="overflow-hidden rounded-3xl border border-white/6 bg-black/40 shadow-2xl shadow-black/40 backdrop-blur-xl">
-                    <div className="px-6 pt-6 pb-2">
-                      <h2 className="text-center text-xs font-semibold tracking-[0.25em] text-amber-200/50 uppercase">
+                  <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/6 bg-black/40 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                    <div className="px-8 pt-8 pb-3">
+                      <h2 className="text-center text-sm font-semibold tracking-[0.25em] text-amber-200/50 uppercase">
                         Today&apos;s Speaker
                       </h2>
                       {todayFacilitator && (
-                        <p className="mt-1 text-center text-xs text-emerald-400/60">
+                        <p className="mt-2 text-center text-sm text-emerald-400/60">
                           本日のファシリテーター:{" "}
                           <span className="font-bold text-emerald-300">
                             {todayFacilitator}
@@ -754,34 +754,40 @@ export function HomeStage({
                         onResult={handleDiceResult}
                       />
                     ) : (
-                      <div className="flex flex-col items-center gap-4 px-6 py-10">
-                        <Dice3D
-                          names={allUserNames}
-                          rolling={false}
-                          resultIndex={null}
-                          size={160}
-                        />
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {allUserNames.map((name) => (
-                            <span
-                              key={name}
-                              className="rounded-full bg-white/5 px-4 py-1.5 text-sm font-semibold text-emerald-300/80 backdrop-blur-sm"
-                            >
-                              {name}
-                            </span>
-                          ))}
+                      <div className="flex flex-1 flex-col px-8 py-6">
+                        {/* ダイス: タイトルとユーザー一覧の縦中央 */}
+                        <div className="flex flex-1 items-center justify-center">
+                          <Dice3D
+                            names={allUserNames}
+                            rolling={false}
+                            resultIndex={null}
+                            size={180}
+                          />
                         </div>
-                        <p className="text-sm text-stone-400">
-                          {todayFacilitator
-                            ? `サイコロを振れるのは ${todayFacilitator} さんだけです`
-                            : "本日のファシリテーターが未設定です"}
-                        </p>
-                        <Link
-                          href="/calendar"
-                          className="text-xs text-amber-400/60 hover:text-amber-300 transition-colors"
-                        >
-                          カレンダーで担当を確認 →
-                        </Link>
+                        {/* ユーザー一覧 + 補足テキスト */}
+                        <div className="flex flex-col items-center gap-4 pb-4">
+                          <div className="flex flex-wrap justify-center gap-3">
+                            {allUserNames.map((name) => (
+                              <span
+                                key={name}
+                                className="rounded-full bg-white/5 px-5 py-2 text-base font-semibold text-emerald-300/80 backdrop-blur-sm"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-sm text-stone-400">
+                            {todayFacilitator
+                              ? `サイコロを振れるのは ${todayFacilitator} さんだけです`
+                              : "本日のファシリテーターが未設定です"}
+                          </p>
+                          <Link
+                            href="/calendar"
+                            className="text-xs text-amber-400/60 hover:text-amber-300 transition-colors"
+                          >
+                            カレンダーで担当を確認 →
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -808,7 +814,7 @@ export function HomeStage({
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 

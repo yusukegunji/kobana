@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 
 // === カラー定数（カジノ/ビリヤードホール） ===
@@ -15,7 +14,6 @@ const LEATHER_DARK = "#2e1a0e";
 const BRASS = "#b8860b";
 const BRASS_LIGHT = "#d4a843";
 const WARM_LIGHT = "#ffcf87";
-const WARM_LIGHT_DIM = "#f5d5a0";
 
 // --- ビリヤードテーブル天面（フェルト） ---
 function BilliardTable() {
@@ -174,15 +172,6 @@ function PendantLight({
   position: [number, number, number];
   color?: string;
 }) {
-  const lightRef = useRef<THREE.PointLight>(null);
-
-  useFrame(({ clock }) => {
-    if (!lightRef.current) return;
-    // 暖かいライトのゆらぎ
-    const t = clock.getElapsedTime();
-    lightRef.current.intensity = 15 + Math.sin(t * 2 + position[0]) * 2;
-  });
-
   return (
     <group position={position}>
       {/* コード */}
@@ -225,7 +214,6 @@ function PendantLight({
       </mesh>
       {/* ポイントライト */}
       <pointLight
-        ref={lightRef}
         position={[0, -0.3, 0]}
         color={color}
         intensity={15}
@@ -244,7 +232,7 @@ function Walls() {
       {/* 奥の壁 */}
       <mesh position={[0, 2, -8]}>
         <planeGeometry args={[24, 10]} />
-        <meshStandardMaterial color="#1a120b" roughness={0.9} />
+        <meshStandardMaterial color="#2e2018" roughness={0.9} />
       </mesh>
       {/* 壁面の木製パネル腰壁 */}
       <mesh position={[0, -0.5, -7.9]}>
@@ -254,125 +242,45 @@ function Walls() {
       {/* 左の壁 */}
       <mesh position={[-10, 2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[20, 10]} />
-        <meshStandardMaterial color="#1a120b" roughness={0.9} />
+        <meshStandardMaterial color="#2e2018" roughness={0.9} />
       </mesh>
       {/* 右の壁 */}
       <mesh position={[10, 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[20, 10]} />
-        <meshStandardMaterial color="#1a120b" roughness={0.9} />
+        <meshStandardMaterial color="#2e2018" roughness={0.9} />
       </mesh>
       {/* 床 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3.3, 0]}>
         <planeGeometry args={[24, 20]} />
-        <meshStandardMaterial color="#1c1108" roughness={0.7} metalness={0.05} />
+        <meshStandardMaterial color="#2a1c10" roughness={0.7} metalness={0.05} />
       </mesh>
       {/* 天井 */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 5.5, 0]}>
         <planeGeometry args={[24, 20]} />
-        <meshStandardMaterial color="#0f0a05" roughness={0.95} />
+        <meshStandardMaterial color="#1a1208" roughness={0.95} />
       </mesh>
     </group>
   );
 }
 
-// --- ダスト/煙のパーティクル ---
-function DustParticles() {
-  const count = 120;
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 14;
-      arr[i * 3 + 1] = Math.random() * 6 - 1;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 10 - 2;
-    }
-    return arr;
-  }, []);
-
-  const pointsRef = useRef<THREE.Points>(null);
-
-  useFrame(({ clock }) => {
-    if (!pointsRef.current) return;
-    const geo = pointsRef.current.geometry;
-    const pos = geo.attributes.position as THREE.BufferAttribute;
-    const t = clock.getElapsedTime();
-
-    for (let i = 0; i < count; i++) {
-      // ゆっくり上昇 + 横に揺れる
-      pos.setY(i, pos.getY(i) + 0.001);
-      pos.setX(i, pos.getX(i) + Math.sin(t * 0.3 + i) * 0.0005);
-
-      // 上に行きすぎたらリセット
-      if (pos.getY(i) > 5) {
-        pos.setY(i, -1);
-      }
-    }
-    pos.needsUpdate = true;
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        color={WARM_LIGHT_DIM}
-        size={0.03}
-        transparent
-        opacity={0.15}
-        sizeAttenuation
-      />
-    </points>
-  );
-}
-
-// --- カメラリグ（テーブルを見下ろす + マウスパララックス） ---
-function CameraRig() {
-  const { camera } = useThree();
-  const mouse = useRef({ x: 0, y: 0 });
-
-  useFrame(() => {
-    camera.position.x = THREE.MathUtils.lerp(
-      camera.position.x,
-      mouse.current.x * 0.8,
-      0.012
-    );
-    camera.position.y = THREE.MathUtils.lerp(
-      camera.position.y,
-      3.5 + mouse.current.y * 0.3,
-      0.012
-    );
-    camera.lookAt(0, -1, -2);
-  });
-
-  return (
-    <mesh
-      visible={false}
-      onPointerMove={(e) => {
-        mouse.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
-        mouse.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
-      }}
-    >
-      <planeGeometry args={[100, 100]} />
-      <meshBasicMaterial transparent opacity={0} />
-    </mesh>
-  );
-}
 
 // --- メインシーン ---
 function Scene() {
   return (
     <>
-      {/* 環境光（薄暗いバーの雰囲気） */}
-      <ambientLight intensity={0.06} color="#ffecd2" />
+      {/* 環境光 */}
+      <ambientLight intensity={0.25} color="#ffecd2" />
 
       {/* ペンダントライト（テーブル上を照らす） */}
       <PendantLight position={[-1.5, 3.5, -2]} />
       <PendantLight position={[1.5, 3.5, -2]} />
 
       {/* 壁面の間接照明 */}
-      <pointLight position={[-8, 3, -5]} color="#ff9b50" intensity={3} distance={15} />
-      <pointLight position={[8, 3, -5]} color="#ff9b50" intensity={3} distance={15} />
-      <pointLight position={[0, 4, -7]} color="#ffcf87" intensity={2} distance={10} />
+      <pointLight position={[-8, 3, -5]} color="#ff9b50" intensity={6} distance={18} />
+      <pointLight position={[8, 3, -5]} color="#ff9b50" intensity={6} distance={18} />
+      <pointLight position={[0, 4, -7]} color="#ffcf87" intensity={4} distance={14} />
+      {/* 手前からの補助光 */}
+      <pointLight position={[0, 3, 5]} color="#ffecd2" intensity={3} distance={15} />
 
       {/* 壁面 */}
       <Walls />
@@ -395,11 +303,6 @@ function Scene() {
       <Chair position={[6, -1.5, -1]} rotation={-Math.PI / 2} />
       <Chair position={[6, -1.5, -3]} rotation={-Math.PI / 2} />
 
-      {/* ダスト/煙パーティクル */}
-      <DustParticles />
-
-      {/* カメラリグ */}
-      <CameraRig />
     </>
   );
 }
@@ -415,7 +318,7 @@ export function StageBackground() {
           alpha: true,
           powerPreference: "high-performance",
         }}
-        style={{ background: "#0a0704" }}
+        style={{ background: "#1a1208" }}
       >
         <Scene />
       </Canvas>
