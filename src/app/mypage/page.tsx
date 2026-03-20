@@ -14,6 +14,13 @@ export default async function MyPage() {
 
   const displayName = (user.user_metadata?.display_name as string) ?? "";
 
+  // profiles テーブルから slack_user_id を取得
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("slack_user_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-sm space-y-6 px-4">
@@ -30,7 +37,11 @@ export default async function MyPage() {
             小噺の話し手として表示される名前を設定してください
           </p>
         </div>
-        <ProfileForm defaultName={displayName} email={user.email ?? ""} />
+        <ProfileForm
+          defaultName={displayName}
+          email={user.email ?? ""}
+          defaultSlackUserId={profile?.slack_user_id ?? ""}
+        />
       </div>
     </div>
   );

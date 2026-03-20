@@ -31,6 +31,11 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // API ルートは認証スキップ（独自の認証を行う）
+  if (pathname.startsWith("/api/")) {
+    return supabaseResponse;
+  }
+
   // 未認証 → ログインページへ
   if (
     !user &&

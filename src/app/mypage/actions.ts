@@ -14,6 +14,13 @@ export async function updateProfile(
     return { error: "名前を入力してください" };
   }
 
+  const slackUserId = (formData.get("slack_user_id") as string | null)?.trim() || null;
+
+  // Slack User ID の形式チェック（入力がある場合）
+  if (slackUserId && !/^[UW][A-Z0-9]{6,}$/.test(slackUserId)) {
+    return { error: "Slack User ID の形式が正しくありません（例: U0123456789）" };
+  }
+
   const { error } = await supabase.auth.updateUser({
     data: { display_name: displayName },
   });
@@ -29,7 +36,10 @@ export async function updateProfile(
   if (user) {
     await supabase
       .from("profiles")
-      .upsert({ id: user.id, display_name: displayName }, { onConflict: "id" });
+      .upsert(
+        { id: user.id, display_name: displayName, slack_user_id: slackUserId },
+        { onConflict: "id" },
+      );
   }
 
   redirect("/kobanashi");
