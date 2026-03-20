@@ -59,18 +59,21 @@ function createFaceTexture(
   ctx.strokeRect(8, 8, size - 16, size - 16);
 
   // テキスト（縦書き）
+  // UV三角形の重心(size*2/3)と正方形中心(size/2)の中間で視覚的に最もバランスが良い位置
+  const centerY = size * 0.57;
   ctx.fillStyle = isFiller ? "rgba(100,100,100,0.4)" : "rgba(50,40,30,0.9)";
   if (!isFiller && text.length >= 2) {
     // 名前は縦書き表示
-    const chars = text.split("");
+    const chars = Array.from(text);
     const fontSize = Math.min(48, 180 / chars.length);
     ctx.font = `900 ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const totalHeight = chars.length * fontSize * 1.1;
-    const startY = (size - totalHeight) / 2 + fontSize / 2;
+    const lineHeight = fontSize * 1.1;
+    const totalHeight = (chars.length - 1) * lineHeight;
+    const startY = centerY - totalHeight / 2;
     chars.forEach((char, ci) => {
-      ctx.fillText(char, size / 2, startY + ci * fontSize * 1.1);
+      ctx.fillText(char, size / 2, startY + ci * lineHeight);
     });
   } else {
     // フィラーや1文字は従来通り中央表示
@@ -78,7 +81,7 @@ function createFaceTexture(
     ctx.font = `900 ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, size / 2, size / 2);
+    ctx.fillText(text, size / 2, centerY);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -102,6 +105,15 @@ function OctahedronWithTextures({
   const currentVelocity = useRef(new THREE.Vector3(0, 0, 0));
   const rollingPhase = useRef<"idle" | "spinning" | "settling">("idle");
   const settleStart = useRef(0);
+
+  // ドラッグ操作用（Quaternion ベース）
+  const isDragging = useRef(false);
+  const previousMouse = useRef({ x: 0, y: 0 });
+  // ドラッグの回転差分を蓄積（useFrame で適用）
+  const dragDelta = useRef({ x: 0, y: 0 });
+  // 慣性用の角速度
+  const angularVelocity = useRef({ x: 0, y: 0 });
+  const autoRotate = useRef(true);
 
   // 正八面体の各面の法線方向（結果表示用）
   const faceNormals = useMemo(() => {
@@ -166,6 +178,37 @@ function OctahedronWithTextures({
     }
   }, [rolling, resultIndex, getTargetQuaternion]);
 
+  // ドラッグでダイスを回転させるハンドラ
+  const onPointerDown = useCallback((e: THREE.Event & { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
+    if (rollingPhase.current !== "idle") return;
+    e.stopPropagation();
+    isDragging.current = true;
+    autoRotate.current = false;
+    angularVelocity.current = { x: 0, y: 0 };
+    dragDelta.current = { x: 0, y: 0 };
+    previousMouse.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+    (e.nativeEvent.target as HTMLElement)?.setPointerCapture?.(e.nativeEvent.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback((e: THREE.Event & { nativeEvent: PointerEvent }) => {
+    if (!isDragging.current) return;
+    const dx = e.nativeEvent.clientX - previousMouse.current.x;
+    const dy = e.nativeEvent.clientY - previousMouse.current.y;
+    previousMouse.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+
+    const sensitivity = 0.005;
+    // 差分を蓄積し、useFrame で滑らかに適用する
+    dragDelta.current.x += dy * sensitivity;
+    dragDelta.current.y += dx * sensitivity;
+    // 慣性用にも記録（直近の速度を EMA で平滑化）
+    angularVelocity.current.x = angularVelocity.current.x * 0.5 + dy * sensitivity * 0.5;
+    angularVelocity.current.y = angularVelocity.current.y * 0.5 + dx * sensitivity * 0.5;
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
   useFrame((_, delta) => {
     if (!groupRef.current) return;
     const dt = Math.min(delta, 0.05);
@@ -212,8 +255,43 @@ function OctahedronWithTextures({
         }
       }
     } else {
-      // アイドル: 軽くホバー
-      groupRef.current.rotation.y += dt * 0.15;
+      // Quaternion ベースでドラッグ・慣性・自動回転を処理
+      const g = groupRef.current;
+      let rx = 0;
+      let ry = 0;
+
+      if (isDragging.current) {
+        // 蓄積した差分を取り出して滑らかに適用
+        rx = dragDelta.current.x;
+        ry = dragDelta.current.y;
+        dragDelta.current.x = 0;
+        dragDelta.current.y = 0;
+      } else if (!autoRotate.current) {
+        // 慣性: 角速度を徐々に減衰
+        rx = angularVelocity.current.x;
+        ry = angularVelocity.current.y;
+        angularVelocity.current.x *= 0.96;
+        angularVelocity.current.y *= 0.96;
+        if (Math.abs(angularVelocity.current.x) < 0.00005 && Math.abs(angularVelocity.current.y) < 0.00005) {
+          autoRotate.current = true;
+        }
+      } else {
+        // 軽くホバー
+        ry = dt * 0.15;
+      }
+
+      // Quaternion で回転を合成（ジンバルロック回避）
+      if (rx !== 0 || ry !== 0) {
+        const qx = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(1, 0, 0), rx
+        );
+        const qy = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(0, 1, 0), ry
+        );
+        // ワールド軸基準で回転を適用
+        g.quaternion.premultiply(qx).premultiply(qy);
+        g.quaternion.normalize();
+      }
     }
   });
 
@@ -244,7 +322,14 @@ function OctahedronWithTextures({
   }, []);
 
   return (
-    <group ref={groupRef} scale={1.3}>
+    <group
+      ref={groupRef}
+      scale={1.3}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+    >
       {faceMeshes.map((face, i) => (
         <mesh key={i}>
           <bufferGeometry>
@@ -345,7 +430,7 @@ export function Dice3D({
         camera={{ position: [0, 0, 3.2], fov: 45 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: "transparent" }}
+        style={{ background: "transparent", cursor: "grab" }}
       >
         <DiceScene names={names} rolling={rolling} resultIndex={resultIndex} />
       </Canvas>

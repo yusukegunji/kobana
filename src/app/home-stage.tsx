@@ -679,80 +679,17 @@ export function HomeStage({
             </div>
           )}
 
-          {/* 中央カラム: サイコロ + 今日の小噺 */}
+          {/* 中央カラム: サイコロ or On Stage（排他表示） */}
           <div className="flex-1 min-w-0">
-            {/* サイコロコーナー */}
-            {allUserNames.length > 0 && (
-              <div className="overflow-hidden rounded-3xl border border-white/6 bg-black/40 shadow-2xl shadow-black/40 backdrop-blur-xl">
+            {/* On Air 中: On Stage セクションを表示 */}
+            {onAirItem ? (
+              <div className="overflow-hidden rounded-3xl border border-red-500/40 bg-emerald-950/70 shadow-2xl shadow-black/50 backdrop-blur-2xl ring-1 ring-red-500/20 transition-colors">
+                <div className="h-1 bg-linear-to-r from-red-800 via-red-500 to-red-800 animate-pulse" />
                 <div className="px-6 pt-6 pb-2">
-                  <h2 className="text-center text-xs font-semibold tracking-[0.25em] text-amber-200/50 uppercase">
-                    Today&apos;s Speaker
+                  <h2 className="text-center text-sm font-bold tracking-[0.2em] uppercase text-red-400">
+                    On Stage
                   </h2>
-                  {todayFacilitator && (
-                    <p className="mt-1 text-center text-xs text-emerald-400/60">
-                      本日のファシリテーター:{" "}
-                      <span className="font-bold text-emerald-300">
-                        {todayFacilitator}
-                      </span>
-                    </p>
-                  )}
                 </div>
-                {isFacilitator ? (
-                  <DiceRoller
-                    speakers={allUserNames}
-                    onSelected={handleDiceSelected}
-                    disabled={!!onAirItem}
-                    onResult={handleDiceResult}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-4 px-6 py-10">
-                    <Dice3D
-                      names={allUserNames}
-                      rolling={false}
-                      resultIndex={null}
-                      size={160}
-                    />
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {allUserNames.map((name) => (
-                        <span
-                          key={name}
-                          className="rounded-full bg-white/5 px-4 py-1.5 text-sm font-semibold text-emerald-300/80 backdrop-blur-sm"
-                        >
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="text-sm text-stone-400">
-                      {todayFacilitator
-                        ? `サイコロを振れるのは ${todayFacilitator} さんだけです`
-                        : "本日のファシリテーターが未設定です"}
-                    </p>
-                    <Link
-                      href="/calendar"
-                      className="text-xs text-amber-400/60 hover:text-amber-300 transition-colors"
-                    >
-                      カレンダーで担当を確認 →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 今日の小噺一覧 */}
-            <div
-              className={`mt-6 overflow-hidden rounded-3xl border shadow-2xl shadow-black/50 backdrop-blur-2xl transition-colors ${onAirItem ? "border-red-500/40 bg-emerald-950/70 ring-1 ring-red-500/20" : "border-amber-900/40 bg-emerald-950/70"}`}
-            >
-              <div
-                className={`h-1 ${onAirItem ? "bg-linear-to-r from-red-800 via-red-500 to-red-800 animate-pulse" : "bg-linear-to-r from-amber-800 via-amber-500 to-amber-800"}`}
-              />
-              <div className="px-6 pt-6 pb-2">
-                <h2
-                  className={`text-center text-sm font-bold tracking-[0.2em] uppercase ${onAirItem ? "text-red-400" : "text-amber-300/80"}`}
-                >
-                  On Stage
-                </h2>
-              </div>
-              {onAirItem && (
                 <OnStageAirControls
                   itemId={onAirItem.id}
                   itemTitle={onAirItem.title}
@@ -768,45 +705,111 @@ export function HomeStage({
                   currentUserId={currentUserId}
                   startedAt={onAir?.started_at}
                 />
-              )}
-
-              {waitingItems.length === 0 && doneItems.length === 0 ? (
-                <div className="px-6 py-14 text-center">
-                  <div className="animate-slide-up-fade">
-                    <p className="text-lg text-emerald-300/60">
-                      今日の小噺はまだ登録されていません
-                    </p>
-                    <Link
-                      href="/kobanashi/new"
-                      className="mt-4 inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-5 py-2 text-sm font-medium text-amber-300 transition-all hover:bg-amber-500/20 hover:border-amber-400/50"
-                    >
-                      <span>+</span> 小噺を追加する
-                    </Link>
+                {(waitingItems.length > 0 || doneItems.length > 0) && (
+                  <div className="divide-y divide-white/5 py-2">
+                    {waitingItems.map((item, i) => (
+                      <WaitingItemRow
+                        key={item.id}
+                        item={item}
+                        onAirItem={onAirItem}
+                        onStart={() => startOnAir(item.id)}
+                        index={i}
+                        currentUserId={currentUserId}
+                      />
+                    ))}
+                    {doneItems.map((item, i) => (
+                      <DoneItemRow
+                        key={item.id}
+                        item={item}
+                        index={i}
+                        currentUserId={currentUserId}
+                      />
+                    ))}
                   </div>
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5 py-2">
-                  {waitingItems.map((item, i) => (
-                    <WaitingItemRow
-                      key={item.id}
-                      item={item}
-                      onAirItem={onAirItem}
-                      onStart={() => startOnAir(item.id)}
-                      index={i}
-                      currentUserId={currentUserId}
-                    />
-                  ))}
-                  {doneItems.map((item, i) => (
-                    <DoneItemRow
-                      key={item.id}
-                      item={item}
-                      index={i}
-                      currentUserId={currentUserId}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* 通常時: Today's Speaker セクション */}
+                {allUserNames.length > 0 && (
+                  <div className="overflow-hidden rounded-3xl border border-white/6 bg-black/40 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                    <div className="px-6 pt-6 pb-2">
+                      <h2 className="text-center text-xs font-semibold tracking-[0.25em] text-amber-200/50 uppercase">
+                        Today&apos;s Speaker
+                      </h2>
+                      {todayFacilitator && (
+                        <p className="mt-1 text-center text-xs text-emerald-400/60">
+                          本日のファシリテーター:{" "}
+                          <span className="font-bold text-emerald-300">
+                            {todayFacilitator}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    {isFacilitator ? (
+                      <DiceRoller
+                        speakers={allUserNames}
+                        onSelected={handleDiceSelected}
+                        disabled={false}
+                        onResult={handleDiceResult}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-4 px-6 py-10">
+                        <Dice3D
+                          names={allUserNames}
+                          rolling={false}
+                          resultIndex={null}
+                          size={160}
+                        />
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {allUserNames.map((name) => (
+                            <span
+                              key={name}
+                              className="rounded-full bg-white/5 px-4 py-1.5 text-sm font-semibold text-emerald-300/80 backdrop-blur-sm"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-stone-400">
+                          {todayFacilitator
+                            ? `サイコロを振れるのは ${todayFacilitator} さんだけです`
+                            : "本日のファシリテーターが未設定です"}
+                        </p>
+                        <Link
+                          href="/calendar"
+                          className="text-xs text-amber-400/60 hover:text-amber-300 transition-colors"
+                        >
+                          カレンダーで担当を確認 →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 公開済みリスト */}
+                {doneItems.length > 0 && (
+                  <div className="mt-6 overflow-hidden rounded-3xl border border-amber-900/40 bg-emerald-950/70 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+                    <div className="h-1 bg-linear-to-r from-amber-800 via-amber-500 to-amber-800" />
+                    <div className="px-6 pt-6 pb-2">
+                      <h2 className="text-center text-sm font-bold tracking-[0.2em] uppercase text-amber-300/80">
+                        Today&apos;s Done
+                      </h2>
+                    </div>
+                    <div className="divide-y divide-white/5 py-2">
+                      {doneItems.map((item, i) => (
+                        <DoneItemRow
+                          key={item.id}
+                          item={item}
+                          index={i}
+                          currentUserId={currentUserId}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* 右カラム: Recent Highlights + Ranking（縦1列） */}
@@ -852,7 +855,7 @@ export function HomeStage({
           )}
         </div>
 
-        {/* モバイル用: ストック + ハイライト（lg未満では下に表示） */}
+        {/* モバイル用: ストック + ハイライト + ランキング（lg未満では下に表示） */}
         <div className="flex flex-col gap-8 px-4 pb-20 lg:hidden sm:px-10">
           {allItems.length > 0 && (
             <div>
