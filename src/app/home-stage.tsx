@@ -54,7 +54,7 @@ function BrandTitle() {
         {letters.map((char, i) => (
           <span
             key={i}
-            className={`bg-linear-to-br ${TITLE_GRADIENTS[i % TITLE_GRADIENTS.length]} inline-flex h-14 w-14 items-center justify-center rounded-xl text-5xl leading-none text-white shadow-lg transition-transform hover:-rotate-6 hover:scale-125 sm:h-16 sm:w-16 sm:text-6xl ${mounted ? "animate-drop-in" : "opacity-0"}`}
+            className={`bg-linear-to-br ${TITLE_GRADIENTS[i % TITLE_GRADIENTS.length]} inline-flex h-9 w-9 items-center justify-center rounded-lg text-2xl leading-none text-white shadow-lg transition-transform hover:-rotate-6 hover:scale-125 sm:h-10 sm:w-10 sm:text-3xl ${mounted ? "animate-drop-in" : "opacity-0"}`}
             style={{
               animationDelay: `${i * 0.06}s`,
               fontFamily: "var(--font-display), sans-serif",
