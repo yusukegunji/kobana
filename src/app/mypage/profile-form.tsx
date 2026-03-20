@@ -47,7 +47,10 @@ export function ProfileForm({
           placeholder="例: U0123456789"
         />
         <p className="text-xs text-muted-foreground">
-          Slack の有休申請ワークフローと連携するために必要です
+          有休申請時に Slack でメンション表示するために必要です。
+          <br />
+          確認方法: Slack でユーザー名をクリック → プロフィール →
+          「…」→「メンバーIDをコピー」
         </p>
       </div>
       <Button type="submit" className="w-full" disabled={isPending}>
