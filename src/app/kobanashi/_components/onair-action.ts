@@ -33,6 +33,55 @@ export async function startOnAir(
   return { error: null };
 }
 
+export async function createAndStartOnAir(
+  speaker: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "ログインが必要です" };
+  }
+
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // kobanashiを作成
+  const { data: newItem, error: insertError } = await supabase
+    .from("kobanashi")
+    .insert({
+      title: "フリートーク",
+      speaker,
+      status: "未対応",
+      scheduled_date: today,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !newItem) {
+    return { error: insertError?.message ?? "作成に失敗しました" };
+  }
+
+  // 既存のOnAirを削除
+  await supabase.from("current_onair").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // OnAirを開始
+  const { error } = await supabase.from("current_onair").insert({
+    kobanashi_id: newItem.id,
+    started_by: user.id,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/kobanashi");
+  return { error: null };
+}
+
 export async function finishOnAir(
   id: string,
   durationSeconds: number

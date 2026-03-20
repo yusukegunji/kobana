@@ -12,7 +12,7 @@ import {
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
-import { startOnAir, finishOnAir } from "./kobanashi/_components/onair-action";
+import { startOnAir, finishOnAir, createAndStartOnAir } from "./kobanashi/_components/onair-action";
 import { useRealtimeOnAir } from "@/lib/supabase/realtime";
 import { ConfettiBurst } from "@/components/confetti-burst";
 import { FabulousButton } from "./kobanashi/_components/fabulous-button";
@@ -85,13 +85,17 @@ function formatDuration(minutes: number | null) {
 function DiceRoller({
   speakers,
   onSelected,
+  onFreeTalk,
   disabled,
   onResult,
+  hasStock,
 }: {
   speakers: string[];
   onSelected: (speaker: string) => void;
+  onFreeTalk: (speaker: string) => void;
   disabled: boolean;
   onResult: () => void;
+  hasStock: (speaker: string) => boolean;
 }) {
   const [rolling, setRolling] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -217,31 +221,63 @@ function DiceRoller({
           </Button>
         ) : (
           <div className="animate-slide-up-fade flex flex-col items-center gap-3">
-            <p className="text-base font-bold text-amber-300">
-              {result}さん、STOCKから披露する話を選んでください
-            </p>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => onSelected(result)}
-                disabled={disabled}
-                className="bg-amber-500 px-8 text-lg font-bold text-stone-900 shadow-lg shadow-amber-500/30 hover:bg-amber-400 hover:shadow-amber-400/50 hover:scale-105 transition-all"
-                size="lg"
-              >
-                STOCKを表示
-              </Button>
-              <Button
-                onClick={() => {
-                  setResult(null);
-                  setShowResult(false);
-                  setResultIndex(null);
-                }}
-                variant="outline"
-                className="border-emerald-500/50 text-emerald-300 backdrop-blur-sm hover:bg-emerald-800/50 hover:border-emerald-400 transition-all"
-                size="lg"
-              >
-                もう一度
-              </Button>
-            </div>
+            {hasStock(result) ? (
+              <>
+                <p className="text-base font-bold text-amber-300">
+                  {result}さん、STOCKから披露する話を選んでください
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => onSelected(result)}
+                    disabled={disabled}
+                    className="bg-amber-500 px-8 text-lg font-bold text-stone-900 shadow-lg shadow-amber-500/30 hover:bg-amber-400 hover:shadow-amber-400/50 hover:scale-105 transition-all"
+                    size="lg"
+                  >
+                    STOCKを表示
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setResult(null);
+                      setShowResult(false);
+                      setResultIndex(null);
+                    }}
+                    variant="outline"
+                    className="border-emerald-500/50 text-emerald-300 backdrop-blur-sm hover:bg-emerald-800/50 hover:border-emerald-400 transition-all"
+                    size="lg"
+                  >
+                    もう一度
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-bold text-amber-300">
+                  {result}さんはSTOCKがありません
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => onFreeTalk(result)}
+                    disabled={disabled}
+                    className="bg-amber-500 px-8 text-lg font-bold text-stone-900 shadow-lg shadow-amber-500/30 hover:bg-amber-400 hover:shadow-amber-400/50 hover:scale-105 transition-all"
+                    size="lg"
+                  >
+                    フリートークを開始
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setResult(null);
+                      setShowResult(false);
+                      setResultIndex(null);
+                    }}
+                    variant="outline"
+                    className="border-emerald-500/50 text-emerald-300 backdrop-blur-sm hover:bg-emerald-800/50 hover:border-emerald-400 transition-all"
+                    size="lg"
+                  >
+                    もう一度
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -547,6 +583,15 @@ export function HomeStage({
     setSelectedSpeaker(speaker);
   }, []);
 
+  const handleFreeTalk = useCallback((speaker: string) => {
+    createAndStartOnAir(speaker);
+  }, []);
+
+  const hasStock = useCallback(
+    (speaker: string) => allItems.some((item) => item.speaker === speaker),
+    [allItems],
+  );
+
   const handleStockSelect = useCallback((item: Kobanashi) => {
     startOnAir(item.id);
   }, []);
@@ -750,8 +795,10 @@ export function HomeStage({
                       <DiceRoller
                         speakers={allUserNames}
                         onSelected={handleDiceSelected}
+                        onFreeTalk={handleFreeTalk}
                         disabled={false}
                         onResult={handleDiceResult}
+                        hasStock={hasStock}
                       />
                     ) : (
                       <div className="flex flex-1 flex-col px-8 py-6">
