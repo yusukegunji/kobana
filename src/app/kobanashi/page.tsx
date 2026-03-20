@@ -3,7 +3,6 @@ import { createServerClient } from "@/lib/supabase/server";
 import type { Kobanashi, KobanashiStatus } from "@/lib/types";
 import { KobanashiTable } from "./_components/kobanashi-table";
 import { LinkButton } from "./_components/link-button";
-import { LogoutButton } from "./_components/logout-button";
 import { StatusFilter } from "./_components/status-filter";
 
 export default async function KobanashiListPage({
@@ -44,7 +43,6 @@ export default async function KobanashiListPage({
           <LinkButton href="/kobanashi/new">新規作成</LinkButton>
           <LinkButton href="/calendar" variant="ghost" size="sm">カレンダー</LinkButton>
           <LinkButton href="/mypage" variant="ghost" size="sm">マイページ</LinkButton>
-          <LogoutButton />
         </div>
       </div>
       <KobanashiTable data={(data as Kobanashi[]) ?? []} />

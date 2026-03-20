@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "./profile-form";
+import { LogoutButton } from "./logout-button";
 
 export default async function MyPage() {
   const supabase = await createServerClient();
@@ -42,6 +43,9 @@ export default async function MyPage() {
           email={user.email ?? ""}
           defaultSlackUserId={profile?.slack_user_id ?? ""}
         />
+        <div className="pt-4 text-center">
+          <LogoutButton />
+        </div>
       </div>
     </div>
   );
