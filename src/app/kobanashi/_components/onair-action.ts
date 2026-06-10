@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { todayInJST } from "@/lib/date";
+import type { Kobanashi } from "@/lib/types";
 
 export async function startOnAir(
   kobanashiId: string,
@@ -36,19 +37,19 @@ export async function startOnAir(
 
 export async function createAndStartOnAir(
   speaker: string,
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; item: Kobanashi | null }> {
   const supabase = await createServerClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { error: "ログインが必要です" };
+    return { error: "ログインが必要です", item: null };
   }
 
   const today = todayInJST();
 
-  // kobanashiを作成
+  // kobanashiを作成（作成した行をクライアントの即時表示に使うため全カラム取得）
   const { data: newItem, error: insertError } = await supabase
     .from("kobanashi")
     .insert({
@@ -57,11 +58,11 @@ export async function createAndStartOnAir(
       status: "未対応",
       scheduled_date: today,
     })
-    .select("id")
+    .select("*")
     .single();
 
   if (insertError || !newItem) {
-    return { error: insertError?.message ?? "作成に失敗しました" };
+    return { error: insertError?.message ?? "作成に失敗しました", item: null };
   }
 
   // 既存のOnAirを削除
@@ -74,12 +75,12 @@ export async function createAndStartOnAir(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: error.message, item: null };
   }
 
   revalidatePath("/");
   revalidatePath("/kobanashi");
-  return { error: null };
+  return { error: null, item: newItem as Kobanashi };
 }
 
 export async function finishOnAir(

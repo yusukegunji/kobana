@@ -52,6 +52,10 @@ export function HomeStage({
   const { onAir } = useRealtimeOnAir();
   const [toasts, pushToast] = useToasts();
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
+  // 登壇開始直後はサーバーの再取得が間に合わず todayItems/allItems に該当小噺が
+  // 無いため、クライアントで作成・選択した小噺を一時的に保持してフォールバックに使う
+  const [optimisticOnAir, setOptimisticOnAir] =
+    useState<KobanashiWithFabulous | null>(null);
 
   // リアルタイムの On Air 状態から該当する小噺を導出
   const onAirItem: KobanashiWithFabulous | null = (() => {
@@ -60,6 +64,10 @@ export function HomeStage({
     if (fromToday) return fromToday;
     const fromAll = allItems.find((i) => i.id === onAir.kobanashi_id);
     if (fromAll) return { ...fromAll, fabulous_count: 0, has_fabuloused: false };
+    // サーバー再取得前のフォールバック（onAir と ID が一致する場合のみ）
+    if (optimisticOnAir && optimisticOnAir.id === onAir.kobanashi_id) {
+      return optimisticOnAir;
+    }
     return null;
   })();
 
@@ -77,6 +85,8 @@ export function HomeStage({
 
   const handleStockPick = useCallback(
     (item: Kobanashi) => {
+      // 選択した小噺はその場で分かるので即座にフォールバック表示用に保持
+      setOptimisticOnAir({ ...item, fabulous_count: 0, has_fabuloused: false });
       startOnAir(item.id);
       pushToast("🎤 " + item.speaker + " さんが登壇しました");
     },
@@ -85,8 +95,17 @@ export function HomeStage({
 
   const handleFreeTalk = useCallback(
     (name: string) => {
-      createAndStartOnAir(name);
       pushToast("🎤 " + name + " さんのフリートークを開始しました");
+      // 作成された小噺の ID はサーバー応答で初めて分かるため、戻り値を待って保持する
+      createAndStartOnAir(name).then((res) => {
+        if (res.item) {
+          setOptimisticOnAir({
+            ...res.item,
+            fabulous_count: 0,
+            has_fabuloused: false,
+          });
+        }
+      });
     },
     [pushToast],
   );
