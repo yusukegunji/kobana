@@ -78,7 +78,6 @@ export default async function Home() {
   const allUserNames = (profileRows ?? []).map(
     (r: { display_name: string }) => r.display_name,
   );
-  console.log("allUserNames:", allUserNames);
 
   // 現在のユーザーを取得
   const {
