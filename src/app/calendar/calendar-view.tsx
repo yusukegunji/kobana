@@ -3,8 +3,14 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import type { FacilitatorSchedule, UserDayOff } from "@/lib/types";
-import { upsertFacilitator, removeFacilitator, removeDayOff } from "./actions";
+import {
+  upsertFacilitator,
+  upsertFacilitatorBulk,
+  removeFacilitator,
+  removeDayOff,
+} from "./actions";
 import { DayOffModal } from "./day-off-modal";
+import { RotationPanel } from "./rotation-panel";
 
 interface Member {
   id: string;
@@ -117,6 +123,25 @@ export function CalendarView({
     });
   }
 
+  function handleBulkAssign(plan: { date: string; userId: string }[]) {
+    if (plan.length === 0) return;
+    startTransition(async () => {
+      const result = await upsertFacilitatorBulk(plan);
+      if (!result.error) {
+        setScheduleMap((prev) => {
+          const next = { ...prev };
+          for (const { date, userId } of plan) {
+            next[date] = {
+              userId,
+              displayName: memberMap.get(userId) ?? "不明",
+            };
+          }
+          return next;
+        });
+      }
+    });
+  }
+
   function handleDayOffClick(date: string) {
     if (!currentUserId) return;
 
@@ -205,6 +230,17 @@ export function CalendarView({
           →
         </Button>
       </div>
+
+      {/* ローテーション自動割当 */}
+      <RotationPanel
+        members={members}
+        year={year}
+        month={month}
+        daysOffMap={daysOffMap}
+        assignedDates={new Set(Object.keys(scheduleMap))}
+        isPending={isPending}
+        onApply={handleBulkAssign}
+      />
 
       {/* カレンダーグリッド */}
       <div className="grid grid-cols-7 gap-1">
