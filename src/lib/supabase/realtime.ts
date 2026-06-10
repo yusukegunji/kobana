@@ -2,7 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "./client";
-import type { CurrentOnAir } from "@/lib/types";
+import type {
+  CurrentOnAir,
+  Poll,
+  PollOptionResult,
+  PollVoter,
+} from "@/lib/types";
 
 // --- On Air リアルタイム同期 ---
 export function useRealtimeOnAir() {
@@ -194,4 +199,120 @@ export function useRealtimeFabulousAll(kobanashiIds: string[], currentUserId: st
   const getHasFabuloused = useCallback((id: string) => userFabuloused.has(id), [userFabuloused]);
 
   return { getCount, getHasFabuloused };
+}
+
+// --- ライブ投票 リアルタイム同期 ---
+// 最新の投票（live なら受付中、ended なら結果、無ければ setup）をリアルタイムに購読する。
+export function useRealtimePoll(currentUserId: string | null) {
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [options, setOptions] = useState<PollOptionResult[]>([]);
+  const [voters, setVoters] = useState<PollVoter[]>([]);
+  const [myVote, setMyVote] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const pollIdRef = useRef<string | null>(null);
+  const namesRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    async function loadVotes(pollId: string) {
+      const { data: voteRows } = await supabase
+        .from("poll_votes")
+        .select("option_id, user_id")
+        .eq("poll_id", pollId);
+      const { data: optRows } = await supabase
+        .from("poll_options")
+        .select("id, label, color, position")
+        .eq("poll_id", pollId)
+        .order("position", { ascending: true });
+      if (!active) return;
+
+      const rows = voteRows ?? [];
+      const counts = new Map<string, number>();
+      for (const r of rows) {
+        counts.set(r.option_id, (counts.get(r.option_id) ?? 0) + 1);
+      }
+      setOptions(
+        (optRows ?? []).map((o) => ({
+          id: o.id,
+          label: o.label,
+          color: o.color,
+          votes: counts.get(o.id) ?? 0,
+        })),
+      );
+      setVoters(
+        rows.map((r) => ({
+          userId: r.user_id,
+          name: namesRef.current.get(r.user_id) ?? "?",
+        })),
+      );
+      setMyVote(
+        currentUserId
+          ? (rows.find((r) => r.user_id === currentUserId)?.option_id ?? null)
+          : null,
+      );
+    }
+
+    async function loadCurrentPoll() {
+      const { data } = await supabase
+        .from("polls")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!active) return;
+
+      const next = (data as Poll | null) ?? null;
+      pollIdRef.current = next?.id ?? null;
+      setPoll(next);
+      if (next) {
+        await loadVotes(next.id);
+      } else {
+        setOptions([]);
+        setVoters([]);
+        setMyVote(null);
+      }
+      setLoading(false);
+    }
+
+    // 投票者の表示名を解決するためプロフィールを取得
+    supabase
+      .from("profiles")
+      .select("id, display_name")
+      .then(({ data }) => {
+        const map = new Map<string, string>();
+        for (const row of data ?? []) {
+          map.set(row.id, row.display_name);
+        }
+        namesRef.current = map;
+        loadCurrentPoll();
+      });
+
+    const channel = supabase
+      .channel("polls_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "polls" },
+        () => {
+          loadCurrentPoll();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "poll_votes" },
+        () => {
+          if (pollIdRef.current) loadVotes(pollIdRef.current);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
+  return { poll, options, voters, myVote, loading };
 }
