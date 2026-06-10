@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
+import { todayInJST } from "@/lib/date";
 import { HomeStage } from "./home-stage";
 
 async function attachFabulous(
@@ -35,8 +36,7 @@ async function attachFabulous(
 export default async function Home() {
   const supabase = await createServerClient();
 
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const today = todayInJST();
 
   // 今日の予定
   const { data: todayItems } = await supabase

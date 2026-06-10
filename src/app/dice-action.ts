@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
+import { todayInJST } from "@/lib/date";
 
 export async function createQuickKobanashi(speaker: string): Promise<{
   id: string | null;
@@ -9,7 +10,7 @@ export async function createQuickKobanashi(speaker: string): Promise<{
 }> {
   const supabase = await createServerClient();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayInJST();
 
   const { data, error } = await supabase
     .from("kobanashi")

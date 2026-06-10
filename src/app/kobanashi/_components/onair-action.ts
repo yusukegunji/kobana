@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
+import { todayInJST } from "@/lib/date";
 
 export async function startOnAir(
   kobanashiId: string,
@@ -45,8 +46,7 @@ export async function createAndStartOnAir(
     return { error: "ログインが必要です" };
   }
 
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const today = todayInJST();
 
   // kobanashiを作成
   const { data: newItem, error: insertError } = await supabase
