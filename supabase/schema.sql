@@ -84,9 +84,58 @@ create table user_days_off (
 
 create index idx_user_days_off_date on user_days_off (off_date);
 
+-- ライブ投票（発表者が聞き手全員に投票を促す機能）
+-- 詳細・マイグレーション手順は supabase/migration_polls.sql を参照
+create type poll_kind as enum ('yesno', 'multi');
+create type poll_status as enum ('live', 'ended');
+
+create table polls (
+  id           uuid primary key default uuid_generate_v4(),
+  question     text not null,
+  kind         poll_kind not null default 'yesno',
+  status       poll_status not null default 'live',
+  kobanashi_id uuid references kobanashi(id) on delete set null,
+  created_by   uuid not null references profiles(id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  ended_at     timestamptz
+);
+
+create index idx_polls_status_created on polls (status, created_at desc);
+
+create table poll_options (
+  id         uuid primary key default uuid_generate_v4(),
+  poll_id    uuid not null references polls(id) on delete cascade,
+  label      text not null,
+  color      text not null,
+  position   smallint not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index idx_poll_options_poll on poll_options (poll_id, position);
+
+create table poll_votes (
+  id         uuid primary key default uuid_generate_v4(),
+  poll_id    uuid not null references polls(id) on delete cascade,
+  option_id  uuid not null references poll_options(id) on delete cascade,
+  user_id    uuid not null references profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (poll_id, user_id)
+);
+
+create index idx_poll_votes_poll on poll_votes (poll_id);
+
+create trigger poll_votes_updated_at
+  before update on poll_votes
+  for each row execute function update_updated_at();
+
+alter table poll_votes replica identity full;
+
 -- Realtime を有効化
 alter publication supabase_realtime add table current_onair;
 alter publication supabase_realtime add table kobanashi_fabulous;
+alter publication supabase_realtime add table polls;
+alter publication supabase_realtime add table poll_votes;
 
 -- RLS ポリシー: 認証済みユーザーは全データを読み書き可能
 alter table profiles enable row level security;
@@ -114,3 +163,18 @@ alter table current_onair enable row level security;
 create policy "onair_select" on current_onair for select to authenticated using (true);
 create policy "onair_insert" on current_onair for insert to authenticated with check (true);
 create policy "onair_delete" on current_onair for delete to authenticated using (true);
+
+alter table polls enable row level security;
+create policy "polls_select" on polls for select to authenticated using (true);
+create policy "polls_insert" on polls for insert to authenticated with check (auth.uid() = created_by);
+create policy "polls_update" on polls for update to authenticated using (true);
+
+alter table poll_options enable row level security;
+create policy "poll_options_select" on poll_options for select to authenticated using (true);
+create policy "poll_options_insert" on poll_options for insert to authenticated with check (true);
+
+alter table poll_votes enable row level security;
+create policy "poll_votes_select" on poll_votes for select to authenticated using (true);
+create policy "poll_votes_insert" on poll_votes for insert to authenticated with check (auth.uid() = user_id);
+create policy "poll_votes_update" on poll_votes for update to authenticated using (auth.uid() = user_id);
+create policy "poll_votes_delete" on poll_votes for delete to authenticated using (auth.uid() = user_id);
