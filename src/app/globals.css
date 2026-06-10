@@ -235,3 +235,1201 @@
 .animate-spin-in {
   animation: spin-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* ============================================================
+   KOBANASHI メインページ — stage redesign
+   （Claude Design からのハンドオフを移植。.koba-stage 配下に限定）
+   ============================================================ */
+.koba-stage {
+  /* --- Surfaces (warm stage dark) --- */
+  --bg-0: #0b0908;
+  --bg-1: #100d0b;
+  --surface: #181410;
+  --surface-2: #211b16;
+  --surface-3: #2b231c;
+  --surface-hi: #34291f;
+
+  /* --- Lines --- */
+  --line: rgba(255, 247, 235, 0.08);
+  --line-2: rgba(255, 247, 235, 0.14);
+  --line-3: rgba(255, 247, 235, 0.22);
+
+  /* --- Text --- */
+  --text: #f7f2ea;
+  --text-2: #bdb2a6;
+  --text-3: #8a7f73;
+  --text-4: #5f574e;
+
+  /* --- Spotlight accent --- */
+  --gold: #ffb43c;
+  --gold-2: #ffce7a;
+  --gold-deep: #d8841a;
+  --gold-glow: rgba(255, 180, 60, 0.35);
+
+  /* --- Live / vote accents --- */
+  --live: #ff5252;
+  --live-glow: rgba(255, 82, 82, 0.4);
+
+  /* --- Brand rainbow (logo) --- */
+  --c-blue: #3aa0f0;
+  --c-green: #2ec27e;
+  --c-orange: #ff9f1c;
+  --c-purple: #9c84fb;
+  --c-pink: #ff6fae;
+  --c-teal: #2dd4c4;
+  --c-red: #ff6b5e;
+
+  /* --- Radii --- */
+  --r-sm: 9px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* --- Type --- */
+  --eng: var(--font-space-grotesk), var(--font-noto-jp), system-ui, sans-serif;
+  --jp: var(--font-noto-jp), system-ui, sans-serif;
+
+  --accent: var(--gold);
+  --accent-2: var(--gold-2);
+  --accent-glow: var(--gold-glow);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+
+  min-height: 100vh;
+  color: var(--text);
+  font-family: var(--jp);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background:
+    radial-gradient(1100px 620px at 50% -8%, rgba(255, 180, 60, 0.1), transparent 60%),
+    radial-gradient(900px 700px at 88% 18%, rgba(156, 132, 251, 0.07), transparent 62%),
+    radial-gradient(900px 700px at 8% 30%, rgba(58, 160, 240, 0.06), transparent 60%),
+    var(--bg-0);
+}
+
+.koba-stage *,
+.koba-stage *::before,
+.koba-stage *::after {
+  box-sizing: border-box;
+}
+
+.koba-stage ::selection {
+  background: var(--accent);
+  color: #1a1206;
+}
+
+.koba-stage *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.koba-stage *::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.koba-stage *::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-hi);
+}
+
+/* ===================== shared atoms ===================== */
+.koba-stage .eyebrow {
+  font-family: var(--eng);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.koba-stage .eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.koba-stage .card {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.koba-stage .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--eng);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+}
+.koba-stage .tag.tag-free {
+  color: var(--c-teal);
+  border-color: rgba(45, 212, 196, 0.32);
+  background: rgba(45, 212, 196, 0.08);
+}
+.koba-stage .tag.tag-kaki {
+  color: var(--c-orange);
+  border-color: rgba(255, 159, 28, 0.32);
+  background: rgba(255, 159, 28, 0.08);
+}
+
+.koba-stage .btn {
+  font-family: var(--jp);
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-3);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.12s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.koba-stage .btn:hover {
+  background: var(--surface-hi);
+  border-color: var(--line-3);
+  transform: translateY(-1px);
+}
+.koba-stage .btn:active {
+  transform: translateY(0);
+}
+.koba-stage .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.koba-stage .btn-primary {
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  color: #20150a;
+  border-color: transparent;
+  box-shadow: 0 10px 24px -10px var(--accent-glow);
+}
+.koba-stage .btn-primary:hover {
+  box-shadow: 0 14px 30px -10px var(--accent-glow);
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+}
+.koba-stage .btn-ghost {
+  background: transparent;
+}
+.koba-stage .btn-sm {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* ===================== layout shell ===================== */
+.koba-stage .appbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(22px, 3vw, 48px);
+  background: linear-gradient(180deg, rgba(11, 9, 8, 0.92), rgba(11, 9, 8, 0.55));
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.koba-stage .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.koba-stage .logo {
+  display: flex;
+  gap: 5px;
+}
+.koba-stage .logo .lt {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 17px;
+  color: #11100f;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.6);
+}
+.koba-stage .brand .tagline {
+  font-size: 11.5px;
+  color: var(--text-3);
+  letter-spacing: 0.34em;
+  padding-left: 3px;
+}
+
+.koba-stage .nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.koba-stage .nav .navlink {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.015);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  text-decoration: none;
+}
+.koba-stage .nav .navlink:hover {
+  color: var(--text);
+  border-color: var(--line-3);
+  background: var(--surface-2);
+}
+.koba-stage .nav .navlink.active {
+  color: var(--text);
+  border-color: var(--line-3);
+  background: var(--surface-3);
+}
+
+.koba-stage .now-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.koba-stage .live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 0 var(--live-glow);
+  animation: koba-pulse 2s infinite;
+}
+@keyframes koba-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--live-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 82, 82, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+  }
+}
+
+.koba-stage .stage-wrap {
+  padding: clamp(20px, 2.4vw, 38px) clamp(22px, 3vw, 48px) 64px;
+}
+.koba-stage .grid {
+  display: grid;
+  gap: 22px;
+  max-width: 1640px;
+  margin: 0 auto;
+  align-items: start;
+  grid-template-columns: 300px minmax(0, 1fr) 372px;
+  grid-template-areas:
+    "stock stage rail"
+    "stock poll  rail";
+}
+.koba-stage .block-stock {
+  grid-area: stock;
+}
+.koba-stage .block-stage {
+  grid-area: stage;
+}
+.koba-stage .block-poll {
+  grid-area: poll;
+}
+.koba-stage .block-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+@media (max-width: 1180px) {
+  .koba-stage .grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "stage" "poll" "stock" "rail";
+  }
+}
+
+/* ===================== section heads ===================== */
+.koba-stage .sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.koba-stage .sec-head .link {
+  font-size: 12px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: var(--eng);
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+  text-decoration: none;
+}
+.koba-stage .sec-head .link:hover {
+  color: var(--accent);
+}
+
+/* ===================== STOCK ===================== */
+.koba-stage .stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.koba-stage .stock-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: var(--jp);
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+.koba-stage .stock-item:hover {
+  border-color: var(--line-3);
+  background: var(--surface-2);
+  transform: translateX(2px);
+}
+.koba-stage .stock-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.koba-stage .stock-item .si-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.koba-stage .stock-item .si-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+.koba-stage .stock-item .si-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.koba-stage .stock-item .si-meta .who {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.koba-stage .stock-item .pick {
+  opacity: 0;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  transition: opacity 0.15s;
+}
+.koba-stage .stock-item:hover .pick {
+  opacity: 1;
+}
+.koba-stage .stock-empty {
+  padding: 22px 14px;
+  text-align: center;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-2);
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===================== SPEAKER HERO ===================== */
+.koba-stage .hero {
+  position: relative;
+  overflow: hidden;
+  padding: 26px;
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(620px 320px at 78% -10%, rgba(255, 180, 60, 0.14), transparent 65%),
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-card);
+}
+.koba-stage .hero .spotbeam {
+  position: absolute;
+  top: -120px;
+  right: 60px;
+  width: 280px;
+  height: 520px;
+  background: linear-gradient(180deg, rgba(255, 200, 110, 0.16), transparent 70%);
+  transform: rotate(18deg);
+  filter: blur(8px);
+  pointer-events: none;
+}
+.koba-stage .hero-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .koba-stage .hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.koba-stage .hero-main {
+  min-width: 0;
+}
+.koba-stage .hero .now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.koba-stage .hero .badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #fff;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff6a6a, var(--live));
+  box-shadow: 0 8px 20px -8px var(--live-glow);
+}
+.koba-stage .hero .badge-live .pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-block;
+}
+.koba-stage .hero .now-label {
+  font-family: var(--eng);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.koba-stage .hero .who-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.koba-stage .avatar {
+  border-radius: 18px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-family: var(--eng);
+  font-weight: 700;
+  color: #15110c;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.7);
+}
+.koba-stage .hero .who-name {
+  font-size: 15px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.koba-stage .hero .who-name b {
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 800;
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+.koba-stage .hero .talk-title {
+  margin: 20px 0 0;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 900;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+.koba-stage .hero .talk-sub {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.koba-stage .hero .facil {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+}
+.koba-stage .hero .facil b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.koba-stage .timer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--eng);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+}
+.koba-stage .timer .t-num {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.koba-stage .timer .t-lab {
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+}
+
+.koba-stage .hero-actions {
+  margin-top: 22px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===================== DICE picker ===================== */
+.koba-stage .dice-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.koba-stage .dice-scene {
+  width: 116px;
+  height: 116px;
+  perspective: 760px;
+  margin: 4px auto 2px;
+}
+.koba-stage .dice {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 2.1s cubic-bezier(0.18, 0.7, 0.2, 1);
+  transform: rotateX(-18deg) rotateY(24deg);
+}
+.koba-stage .dice-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(150deg, var(--surface-hi), var(--surface-2));
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--text);
+  padding: 8px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.koba-stage .dice-face .nm {
+  line-height: 1.2;
+}
+.koba-stage .dice-face .pips {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  font-family: var(--eng);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.koba-stage .df1 {
+  transform: rotateY(0deg) translateZ(58px);
+}
+.koba-stage .df2 {
+  transform: rotateY(90deg) translateZ(58px);
+}
+.koba-stage .df3 {
+  transform: rotateY(180deg) translateZ(58px);
+}
+.koba-stage .df4 {
+  transform: rotateY(-90deg) translateZ(58px);
+}
+.koba-stage .df5 {
+  transform: rotateX(90deg) translateZ(58px);
+}
+.koba-stage .df6 {
+  transform: rotateX(-90deg) translateZ(58px);
+}
+.koba-stage .dice-caption {
+  font-family: var(--eng);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: center;
+}
+.koba-stage .dice-caption b {
+  display: block;
+  color: var(--accent);
+  font-size: 13px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* ===================== LIVE POLL ===================== */
+.koba-stage .poll {
+  position: relative;
+  padding: 22px;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  box-shadow: var(--shadow-card);
+}
+.koba-stage .poll-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.koba-stage .poll-head .ph-l {
+  min-width: 0;
+}
+.koba-stage .poll-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+.koba-stage .poll-kicker .k-txt {
+  font-family: var(--eng);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.koba-stage .poll-q {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.koba-stage .poll-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.koba-stage .voters {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--eng);
+  font-size: 12.5px;
+  color: var(--text-2);
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.22);
+  white-space: nowrap;
+}
+.koba-stage .voters b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.koba-stage .poll-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 18px;
+}
+.koba-stage .opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+  width: 100%;
+  text-align: left;
+  font-family: var(--jp);
+  transition: border-color 0.16s ease, transform 0.12s ease;
+}
+.koba-stage .opt:hover {
+  border-color: var(--line-3);
+  transform: translateY(-1px);
+}
+.koba-stage .opt .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(
+    90deg,
+    var(--opt-c, var(--accent)) 0%,
+    color-mix(in oklab, var(--opt-c, var(--accent)) 55%, transparent) 100%
+  );
+  opacity: 0.18;
+  transition: width 0.7s cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+.koba-stage .opt .knob {
+  position: relative;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 14px;
+  color: #15110c;
+  background: var(--opt-c, var(--accent));
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.7);
+}
+.koba-stage .opt .o-label {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.koba-stage .opt .o-pct {
+  position: relative;
+  z-index: 2;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.koba-stage .opt .o-count {
+  position: relative;
+  z-index: 2;
+  font-family: var(--eng);
+  font-size: 11.5px;
+  color: var(--text-3);
+  min-width: 44px;
+  text-align: right;
+}
+.koba-stage .opt.voted {
+  border-color: var(--opt-c, var(--accent));
+}
+.koba-stage .opt.voted .fill {
+  opacity: 0.26;
+}
+.koba-stage .opt.voted::after {
+  content: "あなたの票";
+  position: absolute;
+  right: 14px;
+  top: -1px;
+  z-index: 3;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #15110c;
+  background: var(--opt-c, var(--accent));
+  padding: 2px 7px;
+  border-radius: 0 0 7px 7px;
+}
+.koba-stage .opt.lead .o-pct {
+  color: var(--opt-c, var(--accent));
+}
+
+.koba-stage .poll-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.koba-stage .field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.koba-stage .field label {
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.koba-stage .input,
+.koba-stage .textarea {
+  width: 100%;
+  font-family: var(--jp);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.koba-stage .input:focus,
+.koba-stage .textarea:focus {
+  border-color: var(--accent);
+}
+.koba-stage .input::placeholder,
+.koba-stage .textarea::placeholder {
+  color: var(--text-4);
+}
+.koba-stage .input:disabled {
+  opacity: 0.7;
+}
+.koba-stage .type-toggle {
+  display: flex;
+  gap: 8px;
+}
+.koba-stage .type-toggle .tt {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 11px;
+  border-radius: var(--r-md);
+  font-weight: 700;
+  font-size: 13.5px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--text-2);
+  transition: all 0.15s;
+}
+.koba-stage .type-toggle .tt:hover {
+  border-color: var(--line-3);
+}
+.koba-stage .type-toggle .tt.on {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.koba-stage .opt-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.koba-stage .opt-edit .ix {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 12px;
+  color: #15110c;
+  flex: none;
+}
+.koba-stage .opt-edit .rm {
+  cursor: pointer;
+  color: var(--text-4);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+.koba-stage .opt-edit .rm:hover {
+  color: var(--live);
+}
+.koba-stage .add-opt {
+  align-self: flex-start;
+  color: var(--text-3);
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-weight: 600;
+}
+.koba-stage .add-opt:hover {
+  color: var(--accent);
+}
+
+.koba-stage .poll-footer {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.koba-stage .poll-foot-note {
+  font-size: 12px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.koba-stage .winner-banner {
+  margin-top: 16px;
+  padding: 13px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 14px;
+}
+.koba-stage .winner-banner b {
+  color: var(--accent);
+}
+
+.koba-stage .presence {
+  display: flex;
+  align-items: center;
+}
+.koba-stage .presence .pa {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-left: -7px;
+  border: 2px solid var(--surface-2);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #15110c;
+}
+.koba-stage .presence .pa:first-child {
+  margin-left: 0;
+}
+.koba-stage .presence .more {
+  margin-left: 7px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ===================== RAIL: highlights ===================== */
+.koba-stage .hl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.koba-stage .hl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 13px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+.koba-stage .hl-item:hover {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+.koba-stage .hl-item .hl-mid {
+  flex: 1;
+  min-width: 0;
+}
+.koba-stage .hl-item .hl-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.koba-stage .hl-item .hl-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.koba-stage .hl-item .hl-who {
+  color: var(--c-teal);
+  font-weight: 600;
+}
+.koba-stage .fab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  padding: 6px 11px;
+  cursor: pointer;
+  font-family: var(--eng);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-2);
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+.koba-stage .fab-btn .heart {
+  font-size: 13px;
+  transition: transform 0.2s;
+}
+.koba-stage .fab-btn:hover {
+  border-color: var(--c-pink);
+  color: var(--text);
+}
+.koba-stage .fab-btn.on {
+  color: var(--c-pink);
+  border-color: var(--c-pink);
+  background: rgba(255, 111, 174, 0.12);
+}
+.koba-stage .fab-btn.on .heart {
+  transform: scale(1.15);
+}
+.koba-stage .fab-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ===================== RAIL: ranking ===================== */
+.koba-stage .rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.koba-stage .rank-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.koba-stage .rank-item.top {
+  background: linear-gradient(180deg, var(--surface-3), var(--surface));
+  border-color: var(--line-2);
+}
+.koba-stage .medal {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--eng);
+}
+.koba-stage .medal.m1 {
+  background: linear-gradient(180deg, #ffd964, #e0a316);
+  color: #3a2700;
+  box-shadow: 0 0 16px -4px rgba(255, 200, 80, 0.5);
+}
+.koba-stage .medal.m2 {
+  background: linear-gradient(180deg, #dfe6ec, #a8b3bd);
+  color: #2a3138;
+}
+.koba-stage .medal.m3 {
+  background: linear-gradient(180deg, #e2a86b, #b97a3e);
+  color: #3a2300;
+}
+.koba-stage .medal.mn {
+  background: var(--surface-3);
+  color: var(--text-3);
+}
+.koba-stage .rank-mid {
+  flex: 1;
+  min-width: 0;
+}
+.koba-stage .rank-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.koba-stage .rank-who {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+.koba-stage .rank-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--eng);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--c-pink);
+}
+
+/* ===================== toast ===================== */
+.koba-toast-wrap {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  pointer-events: none;
+}
+.koba-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--surface-hi, #34291f);
+  border: 1px solid var(--line-3, rgba(255, 247, 235, 0.22));
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #f7f2ea);
+  font-family: var(--jp);
+  animation: koba-toast-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes koba-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .koba-stage * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.04ms !important;
+  }
+}
