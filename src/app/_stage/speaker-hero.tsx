@@ -6,6 +6,9 @@ import { finishOnAir } from "../kobanashi/_components/onair-action";
 import { FabulousButton } from "../kobanashi/_components/fabulous-button";
 import { Avatar, TypeTag, talkType } from "./stage-ui";
 import { StageDice } from "./stage-dice";
+import { StageNominate } from "./stage-nominate";
+
+type SelectMode = "dice" | "nominate";
 
 function formatTime(seconds: number): { mm: string; ss: string } {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -123,6 +126,7 @@ interface SelectHeroProps {
   onShowStock: (name: string) => void;
   onFreeTalk: (name: string) => void;
   onRolled: (name: string) => void;
+  onNominated: (name: string) => void;
 }
 
 export function SelectHero({
@@ -133,7 +137,10 @@ export function SelectHero({
   onShowStock,
   onFreeTalk,
   onRolled,
+  onNominated,
 }: SelectHeroProps) {
+  const [mode, setMode] = useState<SelectMode>("dice");
+
   return (
     <div className="hero">
       <div className="spotbeam" />
@@ -143,21 +150,63 @@ export function SelectHero({
             <span className="now-label">Today&apos;s Speaker</span>
           </div>
           <h1 className="talk-title">
-            {canRoll ? "次の発表者をダイスで選出" : "発表者の選出を待っています"}
+            {canRoll
+              ? mode === "dice"
+                ? "次の発表者をダイスで選出"
+                : "次の発表者を指名"
+              : "発表者の選出を待っています"}
           </h1>
           <div className="talk-sub">
-            ダイスで本日の登壇者を決め、STOCK から小噺を選ぶか、フリートークを始めましょう。
+            {mode === "dice"
+              ? "ダイスで本日の登壇者を決め、STOCK から小噺を選ぶか、フリートークを始めましょう。"
+              : "発表してもらう人を指名し、STOCK から小噺を選ぶか、フリートークを始めましょう。"}
           </div>
+          {canRoll && (
+            <div role="tablist" style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "dice"}
+                className={"btn btn-sm" + (mode === "dice" ? " btn-primary" : "")}
+                onClick={() => setMode("dice")}
+              >
+                🎲 ダイス
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "nominate"}
+                className={
+                  "btn btn-sm" + (mode === "nominate" ? " btn-primary" : "")
+                }
+                onClick={() => setMode("nominate")}
+              >
+                👈 指名
+              </button>
+            </div>
+          )}
         </div>
-        <StageDice
-          names={names}
-          facilitator={facilitator}
-          canRoll={canRoll}
-          hasStock={hasStock}
-          onShowStock={onShowStock}
-          onFreeTalk={onFreeTalk}
-          onRolled={onRolled}
-        />
+        {mode === "dice" ? (
+          <StageDice
+            names={names}
+            facilitator={facilitator}
+            canRoll={canRoll}
+            hasStock={hasStock}
+            onShowStock={onShowStock}
+            onFreeTalk={onFreeTalk}
+            onRolled={onRolled}
+          />
+        ) : (
+          <StageNominate
+            names={names}
+            facilitator={facilitator}
+            canNominate={canRoll}
+            hasStock={hasStock}
+            onShowStock={onShowStock}
+            onFreeTalk={onFreeTalk}
+            onNominated={onNominated}
+          />
+        )}
       </div>
     </div>
   );

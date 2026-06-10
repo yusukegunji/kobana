@@ -98,6 +98,13 @@ export function HomeStage({
     [pushToast],
   );
 
+  const handleNominated = useCallback(
+    (name: string) => {
+      pushToast("👈 " + name + " さんを指名しました");
+    },
+    [pushToast],
+  );
+
   return (
     <div className="koba-stage">
       <AppBar onAirSpeaker={onAirItem ? onAirItem.speaker : null} />
@@ -129,6 +136,7 @@ export function HomeStage({
                 onShowStock={setSelectedSpeaker}
                 onFreeTalk={handleFreeTalk}
                 onRolled={handleRolled}
+                onNominated={handleNominated}
               />
             )}
             <TalkList
