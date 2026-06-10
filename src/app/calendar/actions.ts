@@ -22,6 +22,41 @@ export async function upsertFacilitator(date: string, userId: string) {
   return { error: null };
 }
 
+export async function upsertFacilitatorBulk(
+  entries: { date: string; userId: string }[],
+) {
+  if (entries.length === 0) {
+    return { error: null };
+  }
+
+  // バリデーション: 日付形式と userId の存在を確認
+  const invalid = entries.some(
+    (e) => !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || !e.userId,
+  );
+  if (invalid) {
+    return { error: "割当データが不正です" };
+  }
+
+  const supabase = await createServerClient();
+
+  const rows = entries.map((e) => ({
+    scheduled_date: e.date,
+    user_id: e.userId,
+  }));
+
+  const { error } = await supabase
+    .from("facilitator_schedule")
+    .upsert(rows, { onConflict: "scheduled_date" });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/calendar");
+  revalidatePath("/");
+  return { error: null };
+}
+
 export async function removeDayOff(date: string) {
   const supabase = await createServerClient();
 
