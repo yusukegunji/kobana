@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { SpeakerActions } from "./speaker-actions";
 
 // 面のインデックス → その面を正面に向ける回転（デザインの faceRot を移植）
 const FACE_ROT = [
@@ -123,42 +124,13 @@ export function StageDice({
 
       {canRoll ? (
         result ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <div className="dice-caption" style={{ letterSpacing: 0 }}>
-              {hasStock(result)
-                ? `${result} さん、STOCK から披露する話を選んでください`
-                : `${result} さんは STOCK がありません`}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {hasStock(result) ? (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => onShowStock(result)}
-                >
-                  STOCK を表示
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => onFreeTalk(result)}
-                >
-                  フリートークを開始
-                </button>
-              )}
-              <button type="button" className="btn btn-sm" onClick={reset}>
-                もう一度
-              </button>
-            </div>
-          </div>
+          <SpeakerActions
+            speaker={result}
+            hasStock={hasStock}
+            onShowStock={onShowStock}
+            onFreeTalk={onFreeTalk}
+            onReset={reset}
+          />
         ) : (
           <button
             type="button"
