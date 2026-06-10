@@ -87,8 +87,18 @@ export function HomeStage({
     (item: Kobanashi) => {
       // 選択した小噺はその場で分かるので即座にフォールバック表示用に保持
       setOptimisticOnAir({ ...item, fabulous_count: 0, has_fabuloused: false });
-      startOnAir(item.id);
       pushToast("🎤 " + item.speaker + " さんが登壇しました");
+      startOnAir(item.id)
+        .then((res) => {
+          if (res.error) {
+            setOptimisticOnAir(null);
+            pushToast("⚠️ " + res.error);
+          }
+        })
+        .catch(() => {
+          setOptimisticOnAir(null);
+          pushToast("⚠️ 登壇の開始に失敗しました");
+        });
     },
     [pushToast],
   );
@@ -97,15 +107,23 @@ export function HomeStage({
     (name: string) => {
       pushToast("🎤 " + name + " さんのフリートークを開始しました");
       // 作成された小噺の ID はサーバー応答で初めて分かるため、戻り値を待って保持する
-      createAndStartOnAir(name).then((res) => {
-        if (res.item) {
-          setOptimisticOnAir({
-            ...res.item,
-            fabulous_count: 0,
-            has_fabuloused: false,
-          });
-        }
-      });
+      createAndStartOnAir(name)
+        .then((res) => {
+          if (res.error) {
+            pushToast("⚠️ " + res.error);
+            return;
+          }
+          if (res.item) {
+            setOptimisticOnAir({
+              ...res.item,
+              fabulous_count: 0,
+              has_fabuloused: false,
+            });
+          }
+        })
+        .catch(() => {
+          pushToast("⚠️ フリートークの開始に失敗しました");
+        });
     },
     [pushToast],
   );

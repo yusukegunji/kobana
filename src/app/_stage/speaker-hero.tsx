@@ -30,6 +30,7 @@ export function OnAirHero({
   startedAt,
 }: OnAirHeroProps) {
   const [elapsed, setElapsed] = useState(0);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   // 開始時刻（ms）。レンダー中に Date.now() を呼ばないよう effect で初期化する
   const startTime = useRef<number | null>(null);
@@ -52,8 +53,14 @@ export function OnAirHero({
   const handleFinish = useCallback(() => {
     const base = startTime.current ?? Date.now();
     const finalSeconds = Math.floor((Date.now() - base) / 1000);
+    setFinishError(null);
     startTransition(async () => {
-      await finishOnAir(item.id, finalSeconds);
+      try {
+        const res = await finishOnAir(item.id, finalSeconds);
+        if (res.error) setFinishError(res.error);
+      } catch {
+        setFinishError("発表の終了に失敗しました。もう一度お試しください。");
+      }
     });
   }, [item.id]);
 
@@ -112,6 +119,11 @@ export function OnAirHero({
               {isPending ? "保存中…" : "⏹ 発表を終了"}
             </button>
           </div>
+          {finishError && (
+            <p style={{ color: "#ff8a80", fontSize: 13, marginTop: 8 }}>
+              {finishError}
+            </p>
+          )}
         </div>
       </div>
     </div>
