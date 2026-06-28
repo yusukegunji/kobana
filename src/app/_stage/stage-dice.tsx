@@ -38,6 +38,9 @@ export function StageDice({
   const [rolling, setRolling] = useState(false);
   const [rot, setRot] = useState({ x: -18, y: 24 });
   const [result, setResult] = useState<string | null>(null);
+  // 着地する面のインデックスと、その面に表示する当選者名（演出のため面の名前を差し替える）
+  const [landing, setLanding] = useState<number | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -53,8 +56,13 @@ export function StageDice({
 
     // 抽選は全メンバーから公平に行う（キューブは演出）
     const pick = Math.floor(Math.random() * names.length);
-    const base = FACE_ROT[pick % FACE_ROT.length];
+    // 着地する面を決め、その面に当選者名を表示する。
+    // これにより 7 人以上いてもダイスの面・結果・リストがズレない。
+    const landingFace = pick % faces.length;
+    const base = FACE_ROT[landingFace];
     const spins = 2 + Math.floor(Math.random() * 2);
+    setLanding(landingFace);
+    setPicked(names[pick]);
     setRot({ x: base.x - 360 * spins, y: base.y - 360 * spins });
 
     timeoutRef.current = setTimeout(() => {
@@ -62,10 +70,12 @@ export function StageDice({
       setResult(names[pick]);
       onRolled(names[pick]);
     }, ROLL_MS);
-  }, [rolling, names, onRolled]);
+  }, [rolling, names, faces.length, onRolled]);
 
   const reset = useCallback(() => {
     setResult(null);
+    setLanding(null);
+    setPicked(null);
   }, []);
 
   return (
@@ -78,7 +88,7 @@ export function StageDice({
           {faces.map((m, i) => (
             <div key={i} className={"dice-face df" + (i + 1)}>
               <span className="pips">{i + 1}</span>
-              <span className="nm">{m}</span>
+              <span className="nm">{i === landing && picked ? picked : m}</span>
             </div>
           ))}
         </div>
