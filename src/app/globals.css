@@ -823,73 +823,87 @@
   flex-wrap: wrap;
 }
 
-/* ===================== DICE picker ===================== */
+/* ===================== ROULETTE picker ===================== */
 .koba-stage .dice-zone {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
 }
-.koba-stage .dice-scene {
-  width: 116px;
-  height: 116px;
-  perspective: 760px;
-  margin: 4px auto 2px;
-}
-.koba-stage .dice {
+.koba-stage .roulette-scene {
   position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 2.1s cubic-bezier(0.18, 0.7, 0.2, 1);
-  transform: rotateX(-18deg) rotateY(24deg);
+  width: 300px;
+  height: 300px;
+  margin: 4px auto 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
 }
-.koba-stage .dice-face {
+.koba-stage .roulette-scene:not(:disabled) {
+  cursor: pointer;
+}
+/* 真上のポインタ（下向き三角） */
+.koba-stage .roulette-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 18px solid var(--accent);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  z-index: 3;
+}
+.koba-stage .roulette-wheel {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(150deg, var(--surface-hi), var(--surface-2));
-  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  font-weight: 800;
-  font-size: 16px;
-  color: var(--text);
-  padding: 8px;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.55),
+    0 6px 22px rgba(0, 0, 0, 0.45);
+  will-change: transform;
 }
-.koba-stage .dice-face .nm {
-  line-height: 1.2;
-}
-.koba-stage .dice-face .pips {
+/* 各セグメントのラベル：中心から外周へ放射状に配置 */
+.koba-stage .roulette-label {
   position: absolute;
-  top: 7px;
-  left: 8px;
-  font-family: var(--eng);
-  font-size: 10px;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.koba-stage .roulette-name {
+  margin-top: 18px;
+  max-width: 120px;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1.15;
+  color: var(--text);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koba-stage .roulette-name--won {
   color: var(--accent);
-  letter-spacing: 0.1em;
+  font-size: 13px;
 }
-.koba-stage .df1 {
-  transform: rotateY(0deg) translateZ(58px);
-}
-.koba-stage .df2 {
-  transform: rotateY(90deg) translateZ(58px);
-}
-.koba-stage .df3 {
-  transform: rotateY(180deg) translateZ(58px);
-}
-.koba-stage .df4 {
-  transform: rotateY(-90deg) translateZ(58px);
-}
-.koba-stage .df5 {
-  transform: rotateX(90deg) translateZ(58px);
-}
-.koba-stage .df6 {
-  transform: rotateX(-90deg) translateZ(58px);
+/* 中央のハブ（キャップ） */
+.koba-stage .roulette-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--surface-hi), var(--surface-2));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 .koba-stage .dice-caption {
   font-family: var(--eng);

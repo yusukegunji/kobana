@@ -164,13 +164,13 @@ export function SelectHero({
           <h1 className="talk-title">
             {canRoll
               ? mode === "dice"
-                ? "次の発表者をダイスで選出"
+                ? "次の発表者をルーレットで選出"
                 : "次の発表者を指名"
               : "発表者の選出を待っています"}
           </h1>
           <div className="talk-sub">
             {mode === "dice"
-              ? "ダイスで本日の登壇者を決め、STOCK から小噺を選ぶか、フリートークを始めましょう。"
+              ? "ルーレットで本日の登壇者を決め、STOCK から小噺を選ぶか、フリートークを始めましょう。"
               : "発表してもらう人を指名し、STOCK から小噺を選ぶか、フリートークを始めましょう。"}
           </div>
           {canRoll && (
@@ -182,7 +182,7 @@ export function SelectHero({
                 className={"btn btn-sm" + (mode === "dice" ? " btn-primary" : "")}
                 onClick={() => setMode("dice")}
               >
-                🎲 ダイス
+                🎡 ルーレット
               </button>
               <button
                 type="button"
