@@ -31,6 +31,7 @@ src/
   app/                    # Next.js App Router ページ
     kobanashi/            # 小噺 CRUD（メイン機能）
     calendar/             # ファシリテーター予定表
+    seikai/               # それ正解（お題一斉回答ゲーム）
     login/                # 認証
     mypage/               # プロフィール設定
   components/
@@ -44,7 +45,7 @@ src/
     supabase/             # Supabase クライアント (server/client/middleware/realtime)
 supabase/
   schema.sql              # DBスキーマ（テーブル定義、RLS、トリガー）
-  migration_realtime.sql  # Realtime マイグレーション
+  migration_*.sql         # 機能追加ごとのマイグレーション（SQL Editor で手動実行）
 ```
 
 ## アーキテクチャ方針
@@ -62,6 +63,8 @@ supabase/
 - **facilitator_schedule**: 日別ファシリテーター担当
 - **kobanashi_fabulous**: いいね（kobanashi_id + user_id でユニーク）
 - **current_onair**: 現在放映中の小噺（Realtime 対象）
+- **polls / poll_options / poll_votes**: ライブ投票（Realtime 対象）
+- **seikai_games / seikai_answers**: それ正解（Realtime 対象）。締切前は RLS で自分の回答しか読めない
 
 ステータス enum: `未対応` | `対応済` | `凍結` | `対応不要`
 
