@@ -100,3 +100,45 @@ export interface PollVoter {
   userId: string;
   name: string;
 }
+
+// --- それ正解（お題に全員が一斉回答するゲーム） ---
+export type SeikaiStatus = "answering" | "revealed";
+
+export interface SeikaiGame {
+  id: string;
+  theme: string;
+  status: SeikaiStatus;
+  host_id: string;
+  // 回答済みユーザー。締切前は回答本文が読めないため、プレゼンス表示に使う
+  answered_user_ids: string[];
+  created_at: string;
+  revealed_at: string | null;
+}
+
+export interface SeikaiAnswer {
+  id: string;
+  game_id: string;
+  user_id: string;
+  body: string;
+  is_correct: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// 表示名を解決済みの回答（公開後の一覧表示用）
+export interface SeikaiAnswerView extends SeikaiAnswer {
+  name: string;
+}
+
+// 今日の正解数ランキングの1行
+export interface SeikaiScore {
+  userId: string;
+  name: string;
+  correctCount: number;
+}
+
+// ゲームに参加しうるメンバー（profiles の最小形）
+export interface SeikaiMember {
+  id: string;
+  display_name: string;
+}

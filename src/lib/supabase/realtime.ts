@@ -9,6 +9,8 @@ import type {
   PollVoter,
 } from "@/lib/types";
 
+// 「それ正解」の同期フックは ./realtime-seikai の useRealtimeSeikai にある
+
 // --- On Air リアルタイム同期 ---
 export function useRealtimeOnAir() {
   const [onAir, setOnAir] = useState<CurrentOnAir | null>(null);
