@@ -8,25 +8,11 @@ import {
   createAndStartOnAir,
 } from "./kobanashi/_components/onair-action";
 import { AppBar } from "./_stage/app-bar";
+import { useToasts } from "./_stage/use-toasts";
 import { StockRail } from "./_stage/stock-rail";
 import { OnAirHero, SelectHero, TalkList } from "./_stage/speaker-hero";
 import { SideRail } from "./_stage/side-rail";
 import { LivePoll } from "./_stage/live-poll";
-
-interface Toast {
-  id: string;
-  msg: string;
-}
-
-function useToasts() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const push = useCallback((msg: string) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((t) => [...t, { id, msg }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
-  }, []);
-  return [toasts, push] as const;
-}
 
 interface HomeStageProps {
   todayItems: KobanashiWithFabulous[];
