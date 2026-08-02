@@ -8,7 +8,9 @@ interface AppBarProps {
 export function AppBar({ onAirSpeaker = null }: AppBarProps) {
   return (
     <header className="appbar">
-      <BrandLogo />
+      <Link className="brand-link" href="/" aria-label="ホームへ戻る">
+        <BrandLogo />
+      </Link>
       <nav className="nav">
         {onAirSpeaker && (
           <div className="now-pill">
@@ -19,6 +21,9 @@ export function AppBar({ onAirSpeaker = null }: AppBarProps) {
             </span>
           </div>
         )}
+        <Link className="navlink" href="/">
+          ホーム
+        </Link>
         <Link className="navlink" href="/seikai">
           それ正解
         </Link>

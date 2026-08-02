@@ -445,6 +445,15 @@
   border-bottom: 1px solid var(--line);
 }
 
+.koba-stage .brand-link {
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--r-sm);
+  transition: opacity 0.15s;
+}
+.koba-stage .brand-link:hover {
+  opacity: 0.82;
+}
 .koba-stage .brand {
   display: flex;
   flex-direction: column;
