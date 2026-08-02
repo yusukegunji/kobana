@@ -67,7 +67,7 @@ export function ThemeSetup({
           className="input"
           value={theme}
           maxLength={120}
-          placeholder="例：赤いものといえば？"
+          placeholder="例：「あ」から始まる動物"
           onChange={(e) => setTheme(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") start();
