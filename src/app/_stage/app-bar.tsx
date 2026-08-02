@@ -2,10 +2,10 @@ import Link from "next/link";
 import { BrandLogo } from "./stage-ui";
 
 interface AppBarProps {
-  onAirSpeaker: string | null;
+  onAirSpeaker?: string | null;
 }
 
-export function AppBar({ onAirSpeaker }: AppBarProps) {
+export function AppBar({ onAirSpeaker = null }: AppBarProps) {
   return (
     <header className="appbar">
       <BrandLogo />
@@ -19,6 +19,9 @@ export function AppBar({ onAirSpeaker }: AppBarProps) {
             </span>
           </div>
         )}
+        <Link className="navlink" href="/seikai">
+          それ正解
+        </Link>
         <Link className="navlink" href="/calendar">
           カレンダー
         </Link>
