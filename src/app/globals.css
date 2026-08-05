@@ -1721,6 +1721,12 @@
 .koba-stage .skeleton-card {
   height: 260px;
 }
+.koba-stage .skeleton-seikai-main {
+  height: 420px;
+}
+.koba-stage .skeleton-seikai-side {
+  height: 380px;
+}
 @keyframes koba-shimmer {
   from {
     background-position: 140% 0;

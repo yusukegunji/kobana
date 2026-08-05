@@ -1,7 +1,7 @@
 import { AppBar } from "./_stage/app-bar";
 
-// データ取得を待たずにシェルを先に流すためのスケルトン。
-// ホームは Cookie 依存の動的ページなので、これが無いと取得完了まで真っ白になる。
+// ホーム（ステージ）のスケルトン。データ取得を待たずにシェルを先に流す。
+// 他のページはレイアウトが違うので、各ルートに専用の loading.tsx を置いている。
 export default function Loading() {
   return (
     <div className="koba-stage" aria-busy="true">
