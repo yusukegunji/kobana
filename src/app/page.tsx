@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
 import { todayInJST } from "@/lib/date";
+import { timed } from "@/lib/timing";
 import { HomeStage } from "./home-stage";
 
 // ファビュラスは PostgREST の埋め込み取得でまとめて引く（リストごとの追加クエリを無くす）
@@ -41,52 +42,76 @@ export default async function Home() {
     profilesRes,
     facilitatorRes,
     claimsRes,
-  ] = await Promise.all([
-    // 今日の予定
-    supabase
-      .from("kobanashi")
-      .select(SELECT_WITH_FABULOUS)
-      .eq("scheduled_date", today)
-      .order("created_at", { ascending: true }),
+  ] = await timed(
+    "home.batch(7本の並列クエリ全体)",
+    Promise.all([
+      // 今日の予定
+      timed(
+        "home.today",
+        supabase
+          .from("kobanashi")
+          .select(SELECT_WITH_FABULOUS)
+          .eq("scheduled_date", today)
+          .order("created_at", { ascending: true }),
+      ),
 
-    // 最近の対応済み（直近5件）
-    supabase
-      .from("kobanashi")
-      .select(SELECT_WITH_FABULOUS)
-      .eq("status", "対応済")
-      .order("published_at", { ascending: false })
-      .limit(5),
+      // 最近の対応済み（直近5件）
+      timed(
+        "home.recent",
+        supabase
+          .from("kobanashi")
+          .select(SELECT_WITH_FABULOUS)
+          .eq("status", "対応済")
+          .order("published_at", { ascending: false })
+          .limit(5),
+      ),
 
-    // ダッシュボード全件（未対応のもの、日付順）
-    supabase
-      .from("kobanashi")
-      .select("*")
-      .eq("status", "未対応")
-      .neq("scheduled_date", today)
-      .order("scheduled_date", { ascending: true })
-      .limit(20),
+      // ダッシュボード全件（未対応のもの、日付順）
+      timed(
+        "home.stock",
+        supabase
+          .from("kobanashi")
+          .select("*")
+          .eq("status", "未対応")
+          .neq("scheduled_date", today)
+          .order("scheduled_date", { ascending: true })
+          .limit(20),
+      ),
 
-    // ファビュラスランキングの母集団（対応済みの直近50件）
-    supabase
-      .from("kobanashi")
-      .select(SELECT_WITH_FABULOUS)
-      .eq("status", "対応済")
-      .order("published_at", { ascending: false })
-      .limit(50),
+      // ファビュラスランキングの母集団（対応済みの直近50件）
+      timed(
+        "home.ranking",
+        supabase
+          .from("kobanashi")
+          .select(SELECT_WITH_FABULOUS)
+          .eq("status", "対応済")
+          .order("published_at", { ascending: false })
+          .limit(50),
+      ),
 
-    // 全ユーザー（名前一覧と、ファシリテーター名の引き当てに使う）
-    supabase.from("profiles").select("id, display_name").order("display_name"),
+      // 全ユーザー（名前一覧と、ファシリテーター名の引き当てに使う）
+      timed(
+        "home.profiles",
+        supabase
+          .from("profiles")
+          .select("id, display_name")
+          .order("display_name"),
+      ),
 
-    // 今日のファシリテーター
-    supabase
-      .from("facilitator_schedule")
-      .select("user_id")
-      .eq("scheduled_date", today)
-      .maybeSingle(),
+      // 今日のファシリテーター
+      timed(
+        "home.facilitator",
+        supabase
+          .from("facilitator_schedule")
+          .select("user_id")
+          .eq("scheduled_date", today)
+          .maybeSingle(),
+      ),
 
-    // getUser() と違い JWT をローカル検証するだけなので Auth API への往復が発生しない
-    supabase.auth.getClaims(),
-  ]);
+      // getUser() と違い JWT をローカル検証するだけなので Auth API への往復が発生しない
+      timed("home.claims", supabase.auth.getClaims()),
+    ]),
+  );
 
   if (facilitatorRes.error) {
     console.error("[facilitator] query error:", facilitatorRes.error.message);

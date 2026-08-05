@@ -7,6 +7,7 @@ import {
   Noto_Sans_JP,
 } from "next/font/google";
 import "./globals.css";
+import { PerfLogger } from "./perf-logger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +54,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${notoSansJp.variable} antialiased`}
       >
         {children}
+        <PerfLogger />
       </body>
     </html>
   );

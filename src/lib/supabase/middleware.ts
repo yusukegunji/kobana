@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { logTiming } from "@/lib/timing";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -27,10 +28,16 @@ export async function updateSession(request: NextRequest) {
 
   // getUser() は毎リクエスト Auth API へ往復するため、JWT をローカル検証する
   // getClaims() を使う（期限切れならセッション更新が走り Cookie も更新される）
+  const authStart = Date.now();
   const { data: claimsData } = await supabase.auth.getClaims();
   const claims = claimsData?.claims ?? null;
 
   const pathname = request.nextUrl.pathname;
+  logTiming(
+    "middleware.auth",
+    Date.now() - authStart,
+    `path=${pathname} session=${claims ? "あり" : "なし"}`,
+  );
 
   // API ルートは認証スキップ（独自の認証を行う）
   if (pathname.startsWith("/api/")) {
