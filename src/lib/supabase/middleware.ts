@@ -25,9 +25,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getUser() は毎リクエスト Auth API へ往復するため、JWT をローカル検証する
+  // getClaims() を使う（期限切れならセッション更新が走り Cookie も更新される）
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims ?? null;
 
   const pathname = request.nextUrl.pathname;
 
@@ -38,7 +39,7 @@ export async function updateSession(request: NextRequest) {
 
   // 未認証 → ログインページへ
   if (
-    !user &&
+    !claims &&
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/auth")
   ) {
@@ -49,8 +50,8 @@ export async function updateSession(request: NextRequest) {
 
   // 認証済みだが display_name 未設定 → マイページへ
   if (
-    user &&
-    !user.user_metadata?.display_name &&
+    claims &&
+    !claims.user_metadata?.display_name &&
     !pathname.startsWith("/mypage") &&
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/auth")

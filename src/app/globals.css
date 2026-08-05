@@ -1690,6 +1690,46 @@
   }
 }
 
+/* ===================== loading skeleton ===================== */
+.koba-stage .skeleton {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(
+    100deg,
+    var(--surface) 28%,
+    var(--surface-2) 50%,
+    var(--surface) 72%
+  );
+  background-size: 240% 100%;
+  animation: koba-shimmer 1.5s ease-in-out infinite;
+}
+.koba-stage .skeleton + .skeleton {
+  margin-top: 22px;
+}
+.koba-stage .skeleton-rail {
+  height: 520px;
+}
+.koba-stage .skeleton-hero {
+  height: 360px;
+}
+.koba-stage .skeleton-list {
+  height: 240px;
+}
+.koba-stage .skeleton-poll {
+  height: 180px;
+}
+.koba-stage .skeleton-card {
+  height: 260px;
+}
+@keyframes koba-shimmer {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .koba-stage * {
     animation-duration: 0.001ms !important;

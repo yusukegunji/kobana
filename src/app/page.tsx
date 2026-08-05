@@ -3,34 +3,28 @@ import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
 import { todayInJST } from "@/lib/date";
 import { HomeStage } from "./home-stage";
 
-async function attachFabulous(
-  supabase: Awaited<ReturnType<typeof createServerClient>>,
-  items: Kobanashi[],
+// ファビュラスは PostgREST の埋め込み取得でまとめて引く（リストごとの追加クエリを無くす）
+const SELECT_WITH_FABULOUS = "*, kobanashi_fabulous(user_id)";
+
+type KobanashiRow = Kobanashi & {
+  kobanashi_fabulous?: { user_id: string }[] | null;
+};
+
+// 埋め込んだファビュラス行を、件数と自分が付けたかどうかに畳み込む
+function withFabulous(
+  rows: KobanashiRow[] | null,
   currentUserId: string | null,
-): Promise<KobanashiWithFabulous[]> {
-  if (items.length === 0) return [];
-  const ids = items.map((i) => i.id);
-
-  // 全ファビュラス数を取得
-  const { data: fabulousRows } = await supabase
-    .from("kobanashi_fabulous")
-    .select("kobanashi_id, user_id")
-    .in("kobanashi_id", ids);
-
-  const countMap = new Map<string, number>();
-  const userSet = new Set<string>();
-  for (const row of fabulousRows ?? []) {
-    countMap.set(row.kobanashi_id, (countMap.get(row.kobanashi_id) ?? 0) + 1);
-    if (currentUserId && row.user_id === currentUserId) {
-      userSet.add(row.kobanashi_id);
-    }
-  }
-
-  return items.map((item) => ({
-    ...item,
-    fabulous_count: countMap.get(item.id) ?? 0,
-    has_fabuloused: userSet.has(item.id),
-  }));
+): KobanashiWithFabulous[] {
+  return (rows ?? []).map(({ kobanashi_fabulous, ...item }) => {
+    const fabulous = kobanashi_fabulous ?? [];
+    return {
+      ...item,
+      fabulous_count: fabulous.length,
+      has_fabuloused:
+        currentUserId != null &&
+        fabulous.some((f) => f.user_id === currentUserId),
+    };
+  });
 }
 
 export default async function Home() {
@@ -38,112 +32,106 @@ export default async function Home() {
 
   const today = todayInJST();
 
-  // 今日の予定
-  const { data: todayItems } = await supabase
-    .from("kobanashi")
-    .select("*")
-    .eq("scheduled_date", today)
-    .order("created_at", { ascending: true });
+  // 互いに依存しないので必ず並列で投げる。直列にすると往復回数がそのまま TTFB に積み上がる
+  const [
+    todayRes,
+    recentRes,
+    stockRes,
+    rankingRes,
+    profilesRes,
+    facilitatorRes,
+    claimsRes,
+  ] = await Promise.all([
+    // 今日の予定
+    supabase
+      .from("kobanashi")
+      .select(SELECT_WITH_FABULOUS)
+      .eq("scheduled_date", today)
+      .order("created_at", { ascending: true }),
 
-  // 最近の対応済み（直近5件）
-  const { data: recentItems } = await supabase
-    .from("kobanashi")
-    .select("*")
-    .eq("status", "対応済")
-    .order("published_at", { ascending: false })
-    .limit(5);
+    // 最近の対応済み（直近5件）
+    supabase
+      .from("kobanashi")
+      .select(SELECT_WITH_FABULOUS)
+      .eq("status", "対応済")
+      .order("published_at", { ascending: false })
+      .limit(5),
 
-  // ダッシュボード全件（未対応のもの、日付順）
-  const { data: allItems } = await supabase
-    .from("kobanashi")
-    .select("*")
-    .eq("status", "未対応")
-    .neq("scheduled_date", today)
-    .order("scheduled_date", { ascending: true })
-    .limit(20);
+    // ダッシュボード全件（未対応のもの、日付順）
+    supabase
+      .from("kobanashi")
+      .select("*")
+      .eq("status", "未対応")
+      .neq("scheduled_date", today)
+      .order("scheduled_date", { ascending: true })
+      .limit(20),
 
-  // ファビュラスランキング（対応済みのファビュラス数トップ10）
-  const { data: rankingItems } = await supabase
-    .from("kobanashi")
-    .select("*")
-    .eq("status", "対応済")
-    .order("published_at", { ascending: false })
-    .limit(50);
+    // ファビュラスランキングの母集団（対応済みの直近50件）
+    supabase
+      .from("kobanashi")
+      .select(SELECT_WITH_FABULOUS)
+      .eq("status", "対応済")
+      .order("published_at", { ascending: false })
+      .limit(50),
 
-  // 全ユーザー名を取得（profiles テーブルから）
-  const { data: profileRows } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .order("display_name");
-  const allUserNames = (profileRows ?? []).map(
-    (r: { display_name: string }) => r.display_name,
-  );
+    // 全ユーザー（名前一覧と、ファシリテーター名の引き当てに使う）
+    supabase.from("profiles").select("id, display_name").order("display_name"),
 
-  // 現在のユーザーを取得
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const currentUserId = user?.id ?? null;
+    // 今日のファシリテーター
+    supabase
+      .from("facilitator_schedule")
+      .select("user_id")
+      .eq("scheduled_date", today)
+      .maybeSingle(),
 
-  // 今日のファシリテーターを取得
-  const { data: facilitatorRow, error: facilitatorError } = await supabase
-    .from("facilitator_schedule")
-    .select("user_id")
-    .eq("scheduled_date", today)
-    .maybeSingle();
+    // getUser() と違い JWT をローカル検証するだけなので Auth API への往復が発生しない
+    supabase.auth.getClaims(),
+  ]);
 
-  if (facilitatorError) {
-    console.error("[facilitator] query error:", facilitatorError.message);
+  if (facilitatorRes.error) {
+    console.error("[facilitator] query error:", facilitatorRes.error.message);
   }
 
-  const todayFacilitatorUserId = facilitatorRow?.user_id ?? null;
+  const currentUserId = claimsRes.data?.claims.sub ?? null;
 
-  // ファシリテーターの display_name を取得
-  let todayFacilitatorName: string | null = null;
-  if (todayFacilitatorUserId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", todayFacilitatorUserId)
-      .maybeSingle();
-    todayFacilitatorName = profile?.display_name ?? null;
-  }
+  const profileRows =
+    (profilesRes.data as { id: string; display_name: string }[] | null) ?? [];
+  const allUserNames = profileRows.map((r) => r.display_name);
+
+  // ファシリテーター名は取得済みの profiles から引く（追加クエリを投げない）
+  const todayFacilitatorUserId = facilitatorRes.data?.user_id ?? null;
+  const todayFacilitatorName = todayFacilitatorUserId
+    ? (profileRows.find((r) => r.id === todayFacilitatorUserId)?.display_name ??
+      null)
+    : null;
 
   const isFacilitator =
     todayFacilitatorUserId != null && currentUserId === todayFacilitatorUserId;
 
-  // ファビュラス情報を付与
-  const todayWithFab = await attachFabulous(
-    supabase,
-    (todayItems as Kobanashi[]) ?? [],
+  // ランキング: ファビュラスが付いているものを多い順に上位10件
+  const rankingItems = withFabulous(
+    rankingRes.data as KobanashiRow[] | null,
     currentUserId,
-  );
-  const recentWithFab = await attachFabulous(
-    supabase,
-    (recentItems as Kobanashi[]) ?? [],
-    currentUserId,
-  );
-
-  // ランキング: ファビュラス付きで取得し、ファビュラス数でソート
-  const rankingWithFab = await attachFabulous(
-    supabase,
-    (rankingItems as Kobanashi[]) ?? [],
-    currentUserId,
-  );
-  const sortedRanking = rankingWithFab
+  )
     .filter((item) => item.fabulous_count > 0)
     .sort((a, b) => b.fabulous_count - a.fabulous_count)
     .slice(0, 10);
 
   return (
     <HomeStage
-      todayItems={todayWithFab}
-      recentItems={recentWithFab}
-      allItems={(allItems as Kobanashi[]) ?? []}
+      todayItems={withFabulous(
+        todayRes.data as KobanashiRow[] | null,
+        currentUserId,
+      )}
+      recentItems={withFabulous(
+        recentRes.data as KobanashiRow[] | null,
+        currentUserId,
+      )}
+      allItems={(stockRes.data as Kobanashi[] | null) ?? []}
       allUserNames={allUserNames}
       todayFacilitator={todayFacilitatorName}
       isFacilitator={isFacilitator}
-      rankingItems={sortedRanking}
+      rankingItems={rankingItems}
       currentUserId={currentUserId}
     />
   );
