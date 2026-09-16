@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
-import type { FacilitatorSchedule, Profile, UserDayOff } from "@/lib/types";
+import { todayInJST } from "@/lib/date";
+import {
+  MEMBER_SELECT,
+  filterFacilitatorCandidates,
+} from "@/lib/member-status";
+import type { FacilitatorSchedule, MemberRow, UserDayOff } from "@/lib/types";
 import { CalendarView } from "./calendar-view";
 
 export default async function CalendarPage() {
@@ -13,31 +18,42 @@ export default async function CalendarPage() {
   const startDate = fmt(new Date(now.getFullYear(), now.getMonth() - 2, 1));
   const endDate = fmt(new Date(now.getFullYear(), now.getMonth() + 3, 0));
 
-  const { data: schedules } = await supabase
-    .from("facilitator_schedule")
-    .select("*")
-    .gte("scheduled_date", startDate)
-    .lte("scheduled_date", endDate)
-    .order("scheduled_date", { ascending: true });
+  // 互いに依存しないので並列で投げる（往復回数がそのまま TTFB に積み上がる）
+  const [schedulesRes, daysOffRes, userRes, profilesRes] = await Promise.all([
+    supabase
+      .from("facilitator_schedule")
+      .select("*")
+      .gte("scheduled_date", startDate)
+      .lte("scheduled_date", endDate)
+      .order("scheduled_date", { ascending: true }),
 
-  // 休み予定を取得
-  const { data: daysOff } = await supabase
-    .from("user_days_off")
-    .select("*")
-    .gte("off_date", startDate)
-    .lte("off_date", endDate)
-    .order("off_date", { ascending: true });
+    // 休み予定
+    supabase
+      .from("user_days_off")
+      .select("*")
+      .gte("off_date", startDate)
+      .lte("off_date", endDate)
+      .order("off_date", { ascending: true }),
 
-  // ログインユーザー
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // ログインユーザー
+    supabase.auth.getUser(),
 
-  // 全メンバーを profiles から取得
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .order("display_name", { ascending: true });
+    // 全メンバー（退職者を含む）を profiles から取得
+    supabase
+      .from("profiles")
+      .select(MEMBER_SELECT)
+      .order("display_name", { ascending: true }),
+  ]);
+
+  const schedules = schedulesRes.data;
+  const daysOff = daysOffRes.data;
+  const user = userRes.data.user;
+
+  // allMembers は過去の担当者名・休み申請者名の解決用（退職者を含む全員）
+  // facilitatorCandidates は担当割当とローテーションの選択肢用
+  const today = todayInJST();
+  const allMembers = (profilesRes.data as MemberRow[] | null) ?? [];
+  const facilitatorCandidates = filterFacilitatorCandidates(allMembers, today);
 
   return (
     <div className="min-h-screen bg-stone-950">
@@ -64,9 +80,11 @@ export default async function CalendarPage() {
 
         <CalendarView
           initialSchedules={(schedules as FacilitatorSchedule[]) ?? []}
-          members={(profiles as Pick<Profile, "id" | "display_name">[]) ?? []}
+          members={facilitatorCandidates}
+          allMembers={allMembers}
           initialDaysOff={(daysOff as UserDayOff[]) ?? []}
           currentUserId={user?.id ?? null}
+          todayJST={today}
         />
       </div>
     </div>

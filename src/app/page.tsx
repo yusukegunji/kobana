@@ -1,7 +1,8 @@
 import { createServerClient } from "@/lib/supabase/server";
-import type { Kobanashi, KobanashiWithFabulous } from "@/lib/types";
+import type { Kobanashi, KobanashiWithFabulous, MemberRow } from "@/lib/types";
 import { todayInJST } from "@/lib/date";
 import { timed } from "@/lib/timing";
+import { MEMBER_SELECT, filterSpeakerCandidates } from "@/lib/member-status";
 import { HomeStage } from "./home-stage";
 
 // ファビュラスは PostgREST の埋め込み取得でまとめて引く（リストごとの追加クエリを無くす）
@@ -89,13 +90,10 @@ export default async function Home() {
           .limit(50),
       ),
 
-      // 全ユーザー（名前一覧と、ファシリテーター名の引き当てに使う）
+      // 全ユーザー（退職者を含む。ファシリテーター名の引き当てに使う）
       timed(
         "home.profiles",
-        supabase
-          .from("profiles")
-          .select("id, display_name")
-          .order("display_name"),
+        supabase.from("profiles").select(MEMBER_SELECT).order("display_name"),
       ),
 
       // 今日のファシリテーター
@@ -119,9 +117,12 @@ export default async function Home() {
 
   const currentUserId = claimsRes.data?.claims.sub ?? null;
 
-  const profileRows =
-    (profilesRes.data as { id: string; display_name: string }[] | null) ?? [];
-  const allUserNames = profileRows.map((r) => r.display_name);
+  // profileRows は退職者を含む全員。名前の引き当てにはこちらを使う
+  const profileRows = (profilesRes.data as MemberRow[] | null) ?? [];
+  // ルーレット・指名の候補と聴衆カウントは発表者候補（在籍中かつ除外されていない人）に絞る
+  const allUserNames = filterSpeakerCandidates(profileRows, today).map(
+    (r) => r.display_name,
+  );
 
   // ファシリテーター名は取得済みの profiles から引く（追加クエリを投げない）
   const todayFacilitatorUserId = facilitatorRes.data?.user_id ?? null;
