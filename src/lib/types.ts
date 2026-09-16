@@ -17,9 +17,24 @@ export interface Profile {
   id: string;
   display_name: string;
   slack_user_id: string | null;
+  // 退職日。null または今日以降なら在籍中（@/lib/member-status の isActiveMember 参照）
+  left_at: string | null;
+  // 在籍したまま候補から外すフラグ。speaker 側は聴衆カウント・回答母数にも連動する
+  exclude_from_speaker: boolean;
+  exclude_from_facilitator: boolean;
   created_at: string;
   updated_at: string;
 }
+
+// メンバー一覧・選択肢の取得で使う profiles の最小形
+export type MemberRow = Pick<
+  Profile,
+  | "id"
+  | "display_name"
+  | "left_at"
+  | "exclude_from_speaker"
+  | "exclude_from_facilitator"
+>;
 
 export interface FacilitatorSchedule {
   id: string;
