@@ -1,5 +1,8 @@
 {
   "name": "kobana",
+  // デプロイ先を固定する。複数アカウントにアクセスできるトークンでログインすると、
+  // 指定がない場合に別アカウントへデプロイされる（kobana.gunji-yusuke.workers.dev 事故）
+  "account_id": "873479862751088d6f01668a0e524cf2",
   "main": ".open-next/worker.js",
   "assets": {
     "directory": ".open-next/assets"
