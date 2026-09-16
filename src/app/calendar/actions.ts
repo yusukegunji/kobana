@@ -174,6 +174,86 @@ export async function submitDayOffRequest(formData: FormData) {
   return { error: null };
 }
 
+// メンバーの退職日を設定・解除する。
+// 退職日を設定すると、その日以降のファシリテーター担当は DB トリガー
+// (profiles_remove_future_facilitator) が自動で削除する。
+export async function setMemberLeftAt(userId: string, leftAt: string | null) {
+  const supabase = await createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
+  if (!userId) {
+    return { error: "対象のメンバーが指定されていません" };
+  }
+  if (leftAt !== null && !/^\d{4}-\d{2}-\d{2}$/.test(leftAt)) {
+    return { error: "退職日の形式が正しくありません（例: 2026-03-31）" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ left_at: leftAt })
+    .eq("id", userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/calendar");
+  revalidatePath("/");
+  revalidatePath("/seikai");
+  return { error: null };
+}
+
+// 在籍したまま候補から外す／戻す。
+// 退職日と違い、既存のファシリテーター割当には手を触れない（いつでも戻せるため）。
+const EXCLUSION_FIELDS = [
+  "exclude_from_speaker",
+  "exclude_from_facilitator",
+] as const;
+
+export type MemberExclusionField = (typeof EXCLUSION_FIELDS)[number];
+
+export async function setMemberExclusion(
+  userId: string,
+  field: MemberExclusionField,
+  excluded: boolean,
+) {
+  const supabase = await createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
+  if (!userId) {
+    return { error: "対象のメンバーが指定されていません" };
+  }
+  if (!EXCLUSION_FIELDS.includes(field)) {
+    return { error: "対象の候補が不正です" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ [field]: excluded })
+    .eq("id", userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/calendar");
+  revalidatePath("/");
+  revalidatePath("/seikai");
+  return { error: null };
+}
+
 export async function removeFacilitator(date: string) {
   const supabase = await createServerClient();
 
