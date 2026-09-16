@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import type { FacilitatorSchedule, UserDayOff } from "@/lib/types";
+import type { FacilitatorSchedule, MemberRow, UserDayOff } from "@/lib/types";
 import {
   upsertFacilitator,
   upsertFacilitatorBulk,
@@ -10,12 +10,10 @@ import {
   removeDayOff,
 } from "./actions";
 import { DayOffModal } from "./day-off-modal";
+import { MemberPanel } from "./member-panel";
 import { RotationPanel } from "./rotation-panel";
 
-interface Member {
-  id: string;
-  display_name: string;
-}
+type Member = Pick<MemberRow, "id" | "display_name">;
 
 // スケジュールマップ: date -> { userId, displayName }
 interface ScheduleEntry {
@@ -47,15 +45,22 @@ type DaysOffMap = Record<string, Set<string>>;
 export function CalendarView({
   initialSchedules,
   members,
+  allMembers,
   initialDaysOff,
   currentUserId,
+  todayJST,
 }: {
   initialSchedules: FacilitatorSchedule[];
+  // 担当割当とローテーションの選択肢（在籍者のみ）
   members: Member[];
+  // 名前解決用（退職者を含む全員）。過去の担当者名・休み申請者名がここから引かれる
+  allMembers: MemberRow[];
   initialDaysOff: UserDayOff[];
   currentUserId: string | null;
+  // サーバー（JST基準）の今日。在籍判定をサーバー側の絞り込みと揃えるために受け取る
+  todayJST: string;
 }) {
-  const memberMap = new Map(members.map((m) => [m.id, m.display_name]));
+  const memberMap = new Map(allMembers.map((m) => [m.id, m.display_name]));
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -241,6 +246,9 @@ export function CalendarView({
         isPending={isPending}
         onApply={handleBulkAssign}
       />
+
+      {/* メンバー管理（退職日の設定・解除） */}
+      <MemberPanel allMembers={allMembers} today={todayJST} />
 
       {/* カレンダーグリッド */}
       <div className="grid grid-cols-7 gap-1">
