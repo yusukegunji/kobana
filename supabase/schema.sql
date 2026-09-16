@@ -32,10 +32,18 @@ create index idx_kobanashi_scheduled_date on kobanashi (scheduled_date desc);
 create index idx_kobanashi_status on kobanashi (status);
 
 -- ユーザープロフィール
+-- left_at は退職日。NULL または今日以降なら在籍中として扱う（退職日当日までは在籍）
+-- 詳細・マイグレーション手順は supabase/migration_member_left_at.sql を参照
 create table profiles (
   id             uuid primary key references auth.users(id) on delete cascade,
   display_name   text not null,
   slack_user_id  text unique,
+  left_at        date,
+  -- 在籍したまま候補から外すフラグ（詳細は supabase/migration_member_exclusion.sql を参照）
+  -- exclude_from_speaker はルーレット・指名の候補に加え、聴衆カウントと
+  -- それ正解の回答母数にも連動する
+  exclude_from_speaker     boolean not null default false,
+  exclude_from_facilitator boolean not null default false,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
@@ -43,6 +51,25 @@ create table profiles (
 create trigger profiles_updated_at
   before update on profiles
   for each row execute function update_updated_at();
+
+-- 退職日を設定したら、その翌日以降のファシリテーター担当を自動で外す
+create or replace function remove_future_facilitator_assignments()
+returns trigger as $$
+begin
+  -- left_at 当日までは在籍扱い（src/lib/member-status.ts の isActiveMember と揃える）
+  -- なので、外すのは退職日の「翌日以降」の担当だけ
+  if new.left_at is not null and (old.left_at is distinct from new.left_at) then
+    delete from facilitator_schedule
+     where user_id = new.id
+       and scheduled_date > new.left_at;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+create trigger profiles_remove_future_facilitator
+  after update on profiles
+  for each row execute function remove_future_facilitator_assignments();
 
 -- ファシリテーター担当スケジュール
 create table facilitator_schedule (
