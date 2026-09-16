@@ -18,10 +18,6 @@ export default function Loading() {
             <div className="skeleton skeleton-list" />
           </section>
 
-          <section className="block-poll">
-            <div className="skeleton skeleton-poll" />
-          </section>
-
           <section className="block-rail">
             <div className="skeleton skeleton-card" />
             <div className="skeleton skeleton-card" />

@@ -12,7 +12,6 @@ import { useToasts } from "./_stage/use-toasts";
 import { StockRail } from "./_stage/stock-rail";
 import { OnAirHero, SelectHero, TalkList } from "./_stage/speaker-hero";
 import { SideRail } from "./_stage/side-rail";
-import { LivePoll } from "./_stage/live-poll";
 
 interface HomeStageProps {
   todayItems: KobanashiWithFabulous[];
@@ -170,13 +169,6 @@ export function HomeStage({
               currentUserId={currentUserId}
             />
           </section>
-
-          <LivePoll
-            currentUserId={currentUserId}
-            audienceCount={allUserNames.length}
-            kobanashiId={onAirItem ? onAirItem.id : null}
-            pushToast={pushToast}
-          />
 
           <SideRail
             highlights={recentItems}

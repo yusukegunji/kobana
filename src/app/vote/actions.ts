@@ -78,7 +78,7 @@ export async function createPoll(
     return { error: optionsError.message };
   }
 
-  revalidatePath("/");
+  revalidatePath("/vote");
   return { error: null };
 }
 
@@ -154,6 +154,6 @@ export async function endPoll(
     return { error: error.message };
   }
 
-  revalidatePath("/");
+  revalidatePath("/vote");
   return { error: null };
 }

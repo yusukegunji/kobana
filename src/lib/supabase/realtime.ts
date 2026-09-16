@@ -57,6 +57,37 @@ export function useRealtimeOnAir() {
   return { onAir, loading };
 }
 
+// --- On Air 中の発表者名の解決 ---
+// current_onair は kobanashi_id しか持たないため、小噺一覧を抱えていない画面
+// （/vote など）ではこのフックで発表者名を引き当てる
+export function useOnAirSpeaker() {
+  const { onAir } = useRealtimeOnAir();
+  const [speaker, setSpeaker] = useState<string | null>(null);
+
+  const kobanashiId = onAir?.kobanashi_id ?? null;
+
+  useEffect(() => {
+    if (!kobanashiId) {
+      setSpeaker(null);
+      return;
+    }
+    let active = true;
+    createClient()
+      .from("kobanashi")
+      .select("speaker")
+      .eq("id", kobanashiId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setSpeaker(data?.speaker ?? null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [kobanashiId]);
+
+  return { kobanashiId, speaker };
+}
+
 // --- Fabulous リアルタイム同期 ---
 export function useRealtimeFabulous(kobanashiId: string, currentUserId: string | null) {
   const [count, setCount] = useState<number | null>(null);

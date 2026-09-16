@@ -24,6 +24,9 @@ export function AppBar({ onAirSpeaker = null }: AppBarProps) {
         <Link className="navlink" href="/">
           ホーム
         </Link>
+        <Link className="navlink" href="/vote">
+          投票
+        </Link>
         <Link className="navlink" href="/seikai">
           それ正解
         </Link>

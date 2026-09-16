@@ -552,18 +552,18 @@
   margin: 0 auto;
   align-items: start;
   grid-template-columns: 300px minmax(0, 1fr) 372px;
-  grid-template-areas:
-    "stock stage rail"
-    "stock poll  rail";
+  grid-template-areas: "stock stage rail";
+}
+/* 投票は専用ページ（/vote）の1カラム。カードだけを中央に置く */
+.koba-stage .vote-grid {
+  max-width: 820px;
+  margin: 0 auto;
 }
 .koba-stage .block-stock {
   grid-area: stock;
 }
 .koba-stage .block-stage {
   grid-area: stage;
-}
-.koba-stage .block-poll {
-  grid-area: poll;
 }
 .koba-stage .block-rail {
   grid-area: rail;
@@ -575,7 +575,7 @@
 @media (max-width: 1180px) {
   .koba-stage .grid {
     grid-template-columns: 1fr;
-    grid-template-areas: "stage" "poll" "stock" "rail";
+    grid-template-areas: "stage" "stock" "rail";
   }
 }
 
